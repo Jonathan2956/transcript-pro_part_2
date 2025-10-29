@@ -780,6 +780,110 @@
                                 <label class="theme-option">
                                     <input type="radio" name="theme" value="light">
                                     <span class="theme-preview light-theme">
-                                        
+                                                                         <span class="theme-name">Light</span>
+                                    </span>
+                                </label>
+                                <label class="theme-option">
+                                    <input type="radio" name="theme" value="auto">
+                                    <span class="theme-preview auto-theme">
+                                        <span class="theme-name">Auto</span>
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="setting-group">
+                            <h4>Font Size</h4>
+                            <div class="setting-item">
+                                <label for="fontSize" class="setting-label">
+                                    Transcript Text Size
+                                </label>
+                                <select id="fontSize" class="setting-input">
+                                    <option value="small">Small</option>
+                                    <option value="medium" selected>Medium</option>
+                                    <option value="large">Large</option>
+                                    <option value="x-large">Extra Large</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Account Settings -->
+                    <div id="accountSettings" class="settings-panel">
+                        <div class="setting-group">
+                            <h4>Account Information</h4>
+                            <div class="account-info">
+                                <div class="info-item">
+                                    <span class="info-label">Subscription:</span>
+                                    <span class="info-value" id="subscriptionStatus">Free Tier</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Member Since:</span>
+                                    <span class="info-value" id="memberSince">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="setting-group">
+                            <h4>Danger Zone</h4>
+                            <div class="danger-actions">
+                                <button class="btn btn-outline" id="exportDataBtn">
+                                    Export My Data
+                                </button>
+                                <button class="btn btn-danger" id="deleteAccountBtn">
+                                    Delete Account
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-actions">
+                    <button class="btn btn-secondary" id="resetSettingsBtn">
+                        Reset to Defaults
+                    </button>
+                    <button class="btn btn-primary" id="saveSettingsBtn">
+                        Save Settings
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Container -->
+    <div id="notificationContainer" class="notification-container"></div>
+
+    <!-- JavaScript Files -->
+    <script src="js/utils/helpers.js"></script>
+    <script src="js/utils/constants.js"></script>
+    <script src="js/services/ApiService.js"></script>
+    <script src="js/services/YouTubeService.js"></script>
+    <script src="js/services/AIService.js"></script>
+    <script src="js/services/DatabaseManager.js"></script>
+    <script src="js/components/VideoPlayer.js"></script>
+    <script src="js/components/TranscriptManager.js"></script>
+    <script src="js/components/VocabularyManager.js"></script>
+    <script src="js/components/AuthManager.js"></script>
+    <script src="js/components/DualWindowManager.js"></script>
+    <script src="js/app.js"></script>
+
+    <!-- Service Worker Registration -->
+    <script>
+        // Service Worker Register करें PWA features के लिए
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(function(registration) {
+                        console.log('✅ ServiceWorker registered: ', registration.scope);
+                    })
+                    .catch(function(error) {
+                        console.log('❌ ServiceWorker registration failed: ', error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
+```       
 
                   
