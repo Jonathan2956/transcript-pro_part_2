@@ -23,6 +23,8 @@
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/mobile.css" media="(max-width: 768px)">
     <link rel="stylesheet" href="css/themes/dark.css" id="theme-stylesheet">
+    <!-- EXISTING CSS FILES के बाद यह LINE ADD करें -->
+    <link rel="stylesheet" href="css/pronunciation.css">
     
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -191,545 +193,566 @@
                     </div>
                 </div>
             </section>
-
             <!-- Video Player Section -->
-            <section id="videoSection" class="video-section" style="display: none;">
-                <div class="video-container">
-                    <!-- YouTube Player Container -->
-                    <div class="player-container">
-                        <div id="youtubePlayer"></div>
-                        <div class="player-controls">
-                            <button id="playPauseBtn" class="btn btn-icon" aria-label="Play/Pause">
-                                <span>⏯️</span>
-                            </button>
-                            <input type="range" id="volumeSlider" min="0" max="100" value="50" 
-                                   aria-label="Volume control">
-                            <button id="fullscreenBtn" class="btn btn-icon" aria-label="Fullscreen">
-                                <span>📺</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Video Information -->
-                    <div class="video-info-card">
-                        <img id="videoThumbnail" src="" alt="Video Thumbnail" class="video-thumbnail">
-                        <div class="video-details">
-                            <h3 id="videoTitle" class="video-title">Video Title</h3>
-                            <p id="videoChannel" class="video-channel">Channel Name</p>
-                            <div class="video-meta">
-                                <span id="videoDuration" class="video-duration">0:00</span>
-                                <span id="videoViews" class="video-views">0 views</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Dual Window Transcript Interface -->
-            <section id="transcriptSection" class="transcript-section" style="display: none;">
-                <div class="section-header">
-                    <h2>Interactive Transcript</h2>
-                    <div class="section-controls">
-                        <button id="aiFixBtn" class="btn btn-warning">
-                            <span class="btn-icon">🤖</span>
-                            AI Fix Transcript
-                        </button>
-                        <button id="exportBtn" class="btn btn-outline">
-                            <span class="btn-icon">📤</span>
-                            Export
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Dual Window Container -->
-                <div class="dual-window-container" id="dualWindowContainer">
-                    
-                    <!-- Left Window - Sentences -->
-                    <div class="transcript-window sentence-window" id="sentenceWindow">
-                        <div class="window-header" data-window="sentence">
-                            <div class="window-title">
-                                <span class="window-icon">📝</span>
-                                <h3>Sentence Transcript</h3>
-                            </div>
-                            <div class="window-controls">
-                                <button class="window-btn ai-fix-btn" title="AI से Fix करें">
-                                    <span>🤖</span>
-                                </button>
-                                <button class="window-btn refresh-btn" title="Refresh करें">
-                                    <span>🔄</span>
-                                </button>
-                                <button class="window-btn minimize-btn" title="Minimize करें">
-                                    <span>−</span>
-                                </button>
-                                <button class="window-btn close-btn" title="Close करें">
-                                    <span>×</span>
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="window-content">
-                            <!-- Current Sentence Display -->
-                            <div class="current-sentence-section">
-                                <div class="section-label">
-                                    <span class="label-icon">🎯</span>
-                                    CURRENTLY PLAYING
-                                </div>
-                                <div class="current-sentence">
-                                    <div id="currentSentenceOriginal" class="sentence-original">
-                                        Video play करने के बिए transcript यहाँ दिखेगा...
-                                    </div>
-                                    <div id="currentSentenceTranslated" class="sentence-translated">
-                                        वीडियो प्ले करने के बाद ट्रांसक्रिप्ट यहाँ दिखेगा...
-                                    </div>
-                                </div>
-                                <div class="sentence-progress">
-                                    <div class="progress-info">
-                                        <span id="sentenceTime" class="time-display">0:00</span>
-                                        <span id="sentenceCounter" class="counter-display">Sentence 1/10</span>
-                                    </div>
-                                    <div class="progress-bar">
-                                        <div id="sentenceProgressBar" class="progress-fill"></div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- All Sentences List -->
-                            <div class="sentences-list-container">
-                                <div class="list-header">
-                                    <h4>All Sentences</h4>
-                                    <div class="list-controls">
-                                        <button id="autoScrollToggle" class="btn btn-small btn-success" 
-                                                data-enabled="true">
-                                            Auto-scroll: ON
-                                        </button>
-                                    </div>
-                                </div>
-                                <div id="sentencesList" class="sentences-list">
-                                    <!-- Sentences dynamically load होंगे -->
-                                    <div class="empty-state">
-                                        <p>Video load होने के बिए sentences यहाँ दिखेंगे</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Right Window - Phrases -->
-                    <div class="transcript-window phrase-window" id="phraseWindow">
-                        <div class="window-header" data-window="phrase">
-                            <div class="window-title">
-                                <span class="window-icon">🔤</span>
-                                <h3>Phrase Breakdown</h3>
-                            </div>
-                            <div class="window-controls">
-                                <button class="window-btn refresh-btn" title="Refresh phrases" id="refreshPhrasesBtn">
-                                    <span>🔄</span>
-                                </button>
-                                <button class="window-btn minimize-btn" title="Minimize करें">
-                                    <span>−</span>
-                                </button>
-                                <button class="window-btn close-btn" title="Close करें">
-                                    <span>×</span>
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="window-content">
-                            <!-- Current Phrase Display -->
-                            <div class="current-phrase-section">
-                                <div class="section-label">
-                                    <span class="label-icon">📖</span>
-                                    CURRENT PHRASE
-                                </div>
-                                <div class="current-phrase">
-                                    <div id="currentPhraseOriginal" class="phrase-original">
-                                        Sentence select करने के बिए phrase यहाँ दिखेगा...
-                                    </div>
-                                    <div id="currentPhraseTranslated" class="phrase-translated">
-                                        वाक्य चुनने के बाद वाक्यांश यहाँ दिखेगा...
-                                    </div>
-                                </div>
-                                <div class="phrase-meta">
-                                    <span id="phraseType" class="phrase-tag type-tag">Common Phrase</span>
-                                    <span id="phraseDifficulty" class="phrase-tag difficulty-tag">Easy</span>
-                                </div>
-                            </div>
-
-                            <!-- Phrase Breakdown -->
-                            <div class="breakdown-section">
-                                <div class="section-label">
-                                    <span class="label-icon">🔍</span>
-                                    PHRASE BREAKDOWN
-                                </div>
-                                <div id="phraseBreakdown" class="breakdown-list">
-                                    <div class="empty-state">
-                                        <p>Selected sentence के phrases यहाँ दिखेंगे</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Related Phrases -->
-                            <div class="related-section">
-                                <div class="section-label">
-                                    <span class="label-icon">📚</span>
-                                    RELATED PHRASES
-                                </div>
-                                <div id="relatedPhrases" class="related-list">
-                                    <div class="empty-state">
-                                        <p>Similar phrases यहाँ दिखेंगे</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Selection Toolbar (Text select करने पर show होगा) -->
-            <div id="selectionToolbar" class="selection-toolbar" style="display: none;">
-                <div class="toolbar-content">
-                    <div class="selected-text-preview">
-                        <span class="preview-label">Selected:</span>
-                        <span id="selectedText" class="selected-text"></span>
-                    </div>
-                    <div class="toolbar-actions">
-                        <button id="saveWordBtn" class="btn btn-success btn-small">
-                            <span class="btn-icon">💾</span>
-                            Save Word
-                        </button>
-                        <button id="savePhraseBtn" class="btn btn-info btn-small">
-                            <span class="btn-icon">💾</span>
-                            Save Phrase
-                        </button>
-                        <button id="translateBtn" class="btn btn-outline btn-small">
-                            <span class="btn-icon">🌐</span>
-                            Translate
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </main>
-
-        <!-- App Footer -->
-        <footer class="app-footer" id="appFooter">
-            <div class="footer-container">
-                <div class="footer-content">
-                    <div class="footer-section">
-                        <h4>TranscriptPro</h4>
-                        <p>AI-powered language learning with YouTube videos</p>
-                    </div>
-                    <div class="footer-section">
-                        <h4>Features</h4>
-                        <ul>
-                            <li><a href="#transcripts">AI Transcripts</a></li>
-                            <li><a href="#vocabulary">Vocabulary Bank</a></li>
-                            <li><a href="#progress">Progress Tracking</a></li>
-                        </ul>
-                    </div>
-                    <div class="footer-section">
-                        <h4>Support</h4>
-                        <ul>
-                            <li><a href="#help">Help Center</a></li>
-                            <li><a href="#contact">Contact Us</a></li>
-                            <li><a href="#feedback">Feedback</a></li>
-                        </ul>
-                    </div>
-                </div>
-                <div class="footer-bottom">
-                    <p>&copy; 2024 TranscriptPro. All rights reserved.</p>
-                    <div class="footer-links">
-                        <a href="#privacy">Privacy Policy</a>
-                        <a href="#terms">Terms of Service</a>
-                    </div>
-                </div>
-            </div>
-        </footer>
-    </div>
-
-    <!-- Modals और Overlays -->
-
-    <!-- Authentication Modal -->
-    <div id="authModal" class="modal-overlay" style="display: none;">
-        <div class="modal-container">
-            <div class="modal-header">
-                <h3 id="authModalTitle">Login to TranscriptPro</h3>
-                <button class="modal-close-btn" id="closeAuthModal" aria-label="Close modal">
-                    <span>×</span>
+<section id="videoSection" class="video-section" style="display: none;">
+    <div class="video-container">
+        <!-- YouTube Player Container -->
+        <div class="player-container">
+            <div id="youtubePlayer"></div>
+            <div class="player-controls">
+                <button id="playPauseBtn" class="btn btn-icon" aria-label="Play/Pause">
+                    <span>⏯️</span>
+                </button>
+                <input type="range" id="volumeSlider" min="0" max="100" value="50" 
+                       aria-label="Volume control">
+                <button id="fullscreenBtn" class="btn btn-icon" aria-label="Fullscreen">
+                    <span>📺</span>
                 </button>
             </div>
-            <div class="modal-body">
-                <form id="authForm" class="auth-form">
-                    <!-- Register Fields (Sign Up के time show होंगे) -->
-                    <div id="registerFields" class="form-fields" style="display: none;">
-                        <div class="form-group">
-                            <label for="usernameInput" class="form-label">Username</label>
-                            <input type="text" id="usernameInput" class="form-input" 
-                                   placeholder="Choose a username" required
-                                   minlength="3" maxlength="30">
-                            <div class="form-hint">3-30 characters, letters और numbers only</div>
-                        </div>
-                    </div>
+        </div>
 
-                    <!-- Common Fields -->
-                    <div class="form-group">
-                        <label for="emailInput" class="form-label">Email Address</label>
-                        <input type="email" id="emailInput" class="form-input" 
-                               placeholder="your@email.com" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="passwordInput" class="form-label">Password</label>
-                        <input type="password" id="passwordInput" class="form-input" 
-                               placeholder="Enter your password" required
-                               minlength="6">
-                        <div class="form-hint">Minimum 6 characters</div>
-                    </div>
-
-                    <!-- Confirm Password (Sign Up के time) -->
-                    <div id="confirmPasswordGroup" class="form-group" style="display: none;">
-                        <label for="confirmPasswordInput" class="form-label">Confirm Password</label>
-                        <input type="password" id="confirmPasswordInput" class="form-input" 
-                               placeholder="Confirm your password" required>
-                    </div>
-
-                    <!-- Form Actions -->
-                    <div class="form-actions">
-                        <button type="submit" id="authSubmitBtn" class="btn btn-primary btn-full">
-                            <span id="authSubmitText">Login</span>
-                        </button>
-                    </div>
-                </form>
-
-                <!-- Social Login Options -->
-                <div class="social-login">
-                    <div class="divider">
-                        <span>or continue with</span>
-                    </div>
-                    <div class="social-buttons">
-                        <button class="btn btn-outline btn-social" disabled>
-                            <span class="social-icon">🔵</span>
-                            Google
-                        </button>
-                        <button class="btn btn-outline btn-social" disabled>
-                            <span class="social-icon">🔵</span>
-                            Facebook
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Auth Mode Switch -->
-                <div class="auth-switch">
-                    <span id="authSwitchText">Don't have an account?</span>
-                    <button type="button" id="authSwitchBtn" class="btn btn-link">
-                        Sign Up
-                    </button>
+        <!-- Video Information -->
+        <div class="video-info-card">
+            <img id="videoThumbnail" src="" alt="Video Thumbnail" class="video-thumbnail">
+            <div class="video-details">
+                <h3 id="videoTitle" class="video-title">Video Title</h3>
+                <p id="videoChannel" class="video-channel">Channel Name</p>
+                <div class="video-meta">
+                    <span id="videoDuration" class="video-duration">0:00</span>
+                    <span id="videoViews" class="video-views">0 views</span>
                 </div>
             </div>
         </div>
     </div>
+</section>
 
-    <!-- AI Fix Modal -->
-    <div id="aiFixModal" class="modal-overlay" style="display: none;">
-        <div class="modal-container large-modal">
-            <div class="modal-header">
-                <h3>🤖 AI Transcript Fix</h3>
-                <button class="modal-close-btn" id="closeAIFixModal" aria-label="Close modal">
-                    <span>×</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="ai-fix-options">
-                    <h4>Fix Type Select करें</h4>
-                    <div class="option-group">
-                        <label class="option-item">
-                            <input type="radio" name="fixType" value="sentence" checked>
-                            <span class="option-content">
-                                <span class="option-icon">📝</span>
-                                <span class="option-text">
-                                    <strong>Sentence Separation</strong>
-                                    <small>Run-on sentences को properly separate करें</small>
-                                </span>
-                            </span>
-                        </label>
-                        <label class="option-item">
-                            <input type="radio" name="fixType" value="phrase">
-                            <span class="option-content">
-                                <span class="option-icon">🔤</span>
-                                <span class="option-text">
-                                    <strong>Phrase Detection</strong>
-                                    <small>Important phrases और idioms identify करें</small>
-                                </span>
-                            </span>
-                        </label>
-                        <label class="option-item">
-                            <input type="radio" name="fixType" value="both">
-                            <span class="option-content">
-                                <span class="option-icon">🎯</span>
-                                <span class="option-text">
-                                    <strong>Both Improvements</strong>
-                                    <small>Complete transcript enhance करें</small>
-                                </span>
-                            </span>
-                        </label>
-                    </div>
-                </div>
-
-                <div class="preview-section">
-                    <h4>Preview Changes</h4>
-                    <div class="preview-container">
-                        <div class="preview-panel before-panel">
-                            <h5>Before Fix</h5>
-                            <div id="beforeFixContent" class="preview-content">
-                                Original transcript यहाँ दिखेगा...
-                            </div>
-                        </div>
-                        <div class="preview-panel after-panel">
-                            <h5>After AI Fix</h5>
-                            <div id="afterFixContent" class="preview-content">
-                                AI improved transcript यहाँ दिखेगा...
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="modal-actions">
-                    <button id="previewAIFixBtn" class="btn btn-secondary">
-                        <span class="btn-icon">👁️</span>
-                        Preview Fix
-                    </button>
-                    <button id="applyAIFixBtn" class="btn btn-primary" disabled>
-                        <span class="btn-icon">✅</span>
-                        Apply AI Fix
-                    </button>
-                </div>
-            </div>
+<!-- Dual Window Transcript Interface -->
+<section id="transcriptSection" class="transcript-section" style="display: none;">
+    <div class="section-header">
+        <h2>Interactive Transcript</h2>
+        <div class="section-controls">
+            <button id="aiFixBtn" class="btn btn-warning">
+                <span class="btn-icon">🤖</span>
+                AI Fix Transcript
+            </button>
+            <button id="exportBtn" class="btn btn-outline">
+                <span class="btn-icon">📤</span>
+                Export
+            </button>
         </div>
     </div>
 
-    <!-- Vocabulary Bank Modal -->
-    <div id="vocabularyModal" class="modal-overlay" style="display: none;">
-        <div class="modal-container large-modal">
-            <div class="modal-header">
-                <h3>📚 My Vocabulary Bank</h3>
-                <button class="modal-close-btn" id="closeVocabularyModal" aria-label="Close modal">
-                    <span>×</span>
-                </button>
+    <!-- Dual Window Container -->
+    <div class="dual-window-container" id="dualWindowContainer">
+        
+        <!-- Left Window - Sentences -->
+        <div class="transcript-window sentence-window" id="sentenceWindow">
+            <div class="window-header" data-window="sentence">
+                <div class="window-title">
+                    <span class="window-icon">📝</span>
+                    <h3>Sentence Transcript</h3>
+                </div>
+                <div class="window-controls">
+                    <!-- EXISTING CODE में window-controls div के अंदर यह ADD करें -->
+                    <div class="pronunciation-controls">
+                      <button id="sentencePronunciationBtn" class="btn btn-icon pronunciation-btn" title="Pronunciation On/Off">
+                        <span class="pronunciation-icon">🔊</span>
+                      </button>
+                      <select id="sentenceLanguageSelect" class="language-select">
+                        <option value="auto">Auto Detect</option>
+                        <option value="en">English</option>
+                        <option value="hi">Hindi</option>
+                      </select>
+                    </div>
+                    <button class="window-btn ai-fix-btn" title="AI से Fix करें">
+                        <span>🤖</span>
+                    </button>
+                    <button class="window-btn refresh-btn" title="Refresh करें">
+                        <span>🔄</span>
+                    </button>
+                    <button class="window-btn minimize-btn" title="Minimize करें">
+                        <span>−</span>
+                    </button>
+                    <button class="window-btn close-btn" title="Close करें">
+                        <span>×</span>
+                    </button>
+                </div>
             </div>
-            <div class="modal-body">
-                <!-- Vocabulary Statistics -->
-                <div class="vocabulary-stats">
-                    <div class="stat-grid">
-                        <div class="stat-item">
-                            <div class="stat-value" id="totalWordsCount">0</div>
-                            <div class="stat-label">Words</div>
+
+            <div class="window-content">
+                <!-- Current Sentence Display -->
+                <div class="current-sentence-section">
+                    <div class="section-label">
+                        <span class="label-icon">🎯</span>
+                        CURRENTLY PLAYING
+                    </div>
+                    <div class="current-sentence">
+                        <div id="currentSentenceOriginal" class="sentence-original">
+                            Video play करने के बिए transcript यहाँ दिखेगा...
                         </div>
-                        <div class="stat-item">
-                            <div class="stat-value" id="totalPhrasesCount">0</div>
-                            <div class="stat-label">Phrases</div>
+                        <div id="currentSentenceTranslated" class="sentence-translated">
+                            वीडियो प्ले करने के बाद ट्रांसक्रिप्ट यहाँ दिखेगा...
                         </div>
-                        <div class="stat-item">
-                            <div class="stat-value" id="masteredCount">0</div>
-                            <div class="stat-label">Mastered</div>
+                    </div>
+                    <div class="sentence-progress">
+                        <div class="progress-info">
+                            <span id="sentenceTime" class="time-display">0:00</span>
+                            <span id="sentenceCounter" class="counter-display">Sentence 1/10</span>
                         </div>
-                        <div class="stat-item">
-                            <div class="stat-value" id="dueForReviewCount">0</div>
-                            <div class="stat-label">Due for Review</div>
+                        <div class="progress-bar">
+                            <div id="sentenceProgressBar" class="progress-fill"></div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Vocabulary Controls -->
-                <div class="vocabulary-controls">
-                    <div class="search-container">
-                        <input type="text" id="vocabularySearch" class="search-input" 
-                               placeholder="Search words or phrases...">
-                        <span class="search-icon">🔍</span>
+                <!-- All Sentences List -->
+                <div class="sentences-list-container">
+                    <div class="list-header">
+                        <h4>All Sentences</h4>
+                        <div class="list-controls">
+                            <button id="autoScrollToggle" class="btn btn-small btn-success" 
+                                    data-enabled="true">
+                                Auto-scroll: ON
+                            </button>
+                        </div>
                     </div>
-                    <div class="filter-tabs">
-                        <button class="filter-tab active" data-filter="all">All Items</button>
-                        <button class="filter-tab" data-filter="word">Words</button>
-                        <button class="filter-tab" data-filter="phrase">Phrases</button>
-                        <button class="filter-tab" data-filter="due">Due for Review</button>
-                        <button class="filter-tab" data-filter="favorite">Favorites</button>
-                    </div>
-                </div>
-
-                <!-- Vocabulary List -->
-                <div class="vocabulary-list-container">
-                    <div id="vocabularyList" class="vocabulary-list">
+                    <div id="sentencesList" class="sentences-list">
+                        <!-- Sentences dynamically load होंगे -->
                         <div class="empty-state">
-                            <div class="empty-icon">📚</div>
-                            <h4>No Vocabulary Items</h4>
-                            <p>Words या phrases save करने के बिए वे यहाँ दिखेंगे</p>
-                            <button class="btn btn-primary" onclick="app.closeModal('vocabularyModal')">
-                                Start Learning
+                            <p>Video load होने के बिए sentences यहाँ दिखेंगे</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+                        </div>
+                                        <!-- Right Window - Phrases -->
+                <div class="transcript-window phrase-window" id="phraseWindow">
+                    <div class="window-header" data-window="phrase">
+                        <div class="window-title">
+                            <span class="window-icon">🔤</span>
+                            <h3>Phrase Breakdown</h3>
+                        </div>
+                        <div class="window-controls">
+                            <!-- EXISTING CODE में window-controls div के अंदर यह ADD करें -->
+                            <div class="pronunciation-controls">
+                              <button id="phrasePronunciationBtn" class="btn btn-icon pronunciation-btn" title="Pronunciation On/Off">
+                                <span class="pronunciation-icon">🔊</span>
+                              </button>
+                              <select id="phraseLanguageSelect" class="language-select">
+                                <option value="auto">Auto Detect</option>
+                                <option value="en">English</option>
+                                <option value="hi">Hindi</option>
+                              </select>
+                            </div>
+                            <button class="window-btn refresh-btn" title="Refresh phrases" id="refreshPhrasesBtn">
+                                <span>🔄</span>
+                            </button>
+                            <button class="window-btn minimize-btn" title="Minimize करें">
+                                <span>−</span>
+                            </button>
+                            <button class="window-btn close-btn" title="Close करें">
+                                <span>×</span>
                             </button>
                         </div>
+                    </div>
+
+                    <div class="window-content">
+                        <!-- Current Phrase Display -->
+                        <div class="current-phrase-section">
+                            <div class="section-label">
+                                <span class="label-icon">📖</span>
+                                CURRENT PHRASE
+                            </div>
+                            <div class="current-phrase">
+                                <div id="currentPhraseOriginal" class="phrase-original">
+                                    Sentence select करने के बिए phrase यहाँ दिखेगा...
+                                </div>
+                                <div id="currentPhraseTranslated" class="phrase-translated">
+                                    वाक्य चुनने के बाद वाक्यांश यहाँ दिखेगा...
+                                </div>
+                            </div>
+                            <div class="phrase-meta">
+                                <span id="phraseType" class="phrase-tag type-tag">Common Phrase</span>
+                                <span id="phraseDifficulty" class="phrase-tag difficulty-tag">Easy</span>
+                            </div>
+                        </div>
+
+                        <!-- Phrase Breakdown -->
+                        <div class="breakdown-section">
+                            <div class="section-label">
+                                <span class="label-icon">🔍</span>
+                                PHRASE BREAKDOWN
+                            </div>
+                            <div id="phraseBreakdown" class="breakdown-list">
+                                <div class="empty-state">
+                                    <p>Selected sentence के phrases यहाँ दिखेंगे</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Related Phrases -->
+                        <div class="related-section">
+                            <div class="section-label">
+                                <span class="label-icon">📚</span>
+                                RELATED PHRASES
+                            </div>
+                            <div id="relatedPhrases" class="related-list">
+                                <div class="empty-state">
+                                    <p>Similar phrases यहाँ दिखेंगे</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Selection Toolbar (Text select करने पर show होगा) -->
+        <div id="selectionToolbar" class="selection-toolbar" style="display: none;">
+            <div class="toolbar-content">
+                <div class="selected-text-preview">
+                    <span class="preview-label">Selected:</span>
+                    <span id="selectedText" class="selected-text"></span>
+                </div>
+                <div class="toolbar-actions">
+                    <button id="saveWordBtn" class="btn btn-success btn-small">
+                        <span class="btn-icon">💾</span>
+                        Save Word
+                    </button>
+                    <button id="savePhraseBtn" class="btn btn-info btn-small">
+                        <span class="btn-icon">💾</span>
+                        Save Phrase
+                    </button>
+                    <button id="translateBtn" class="btn btn-outline btn-small">
+                        <span class="btn-icon">🌐</span>
+                        Translate
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- App Footer -->
+    <footer class="app-footer" id="appFooter">
+        <div class="footer-container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>TranscriptPro</h4>
+                    <p>AI-powered language learning with YouTube videos</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Features</h4>
+                    <ul>
+                        <li><a href="#transcripts">AI Transcripts</a></li>
+                        <li><a href="#vocabulary">Vocabulary Bank</a></li>
+                        <li><a href="#progress">Progress Tracking</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Support</h4>
+                    <ul>
+                        <li><a href="#help">Help Center</a></li>
+                        <li><a href="#contact">Contact Us</a></li>
+                        <li><a href="#feedback">Feedback</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 TranscriptPro. All rights reserved.</p>
+                <div class="footer-links">
+                    <a href="#privacy">Privacy Policy</a>
+                    <a href="#terms">Terms of Service</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+</div>
+
+<!-- Modals और Overlays -->
+
+<!-- Authentication Modal -->
+<div id="authModal" class="modal-overlay" style="display: none;">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h3 id="authModalTitle">Login to TranscriptPro</h3>
+            <button class="modal-close-btn" id="closeAuthModal" aria-label="Close modal">
+                <span>×</span>
+            </button>
+        </div>
+        <div class="modal-body">
+            <form id="authForm" class="auth-form">
+                <!-- Register Fields (Sign Up के time show होंगे) -->
+                <div id="registerFields" class="form-fields" style="display: none;">
+                    <div class="form-group">
+                        <label for="usernameInput" class="form-label">Username</label>
+                        <input type="text" id="usernameInput" class="form-input" 
+                               placeholder="Choose a username" required
+                               minlength="3" maxlength="30">
+                        <div class="form-hint">3-30 characters, letters और numbers only</div>
+                    </div>
+                </div>
+
+                <!-- Common Fields -->
+                <div class="form-group">
+                    <label for="emailInput" class="form-label">Email Address</label>
+                    <input type="email" id="emailInput" class="form-input" 
+                           placeholder="your@email.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="passwordInput" class="form-label">Password</label>
+                    <input type="password" id="passwordInput" class="form-input" 
+                           placeholder="Enter your password" required
+                           minlength="6">
+                    <div class="form-hint">Minimum 6 characters</div>
+                </div>
+
+                <!-- Confirm Password (Sign Up के time) -->
+                <div id="confirmPasswordGroup" class="form-group" style="display: none;">
+                    <label for="confirmPasswordInput" class="form-label">Confirm Password</label>
+                    <input type="password" id="confirmPasswordInput" class="form-input" 
+                           placeholder="Confirm your password" required>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="form-actions">
+                    <button type="submit" id="authSubmitBtn" class="btn btn-primary btn-full">
+                        <span id="authSubmitText">Login</span>
+                    </button>
+                </div>
+            </form>
+
+            <!-- Social Login Options -->
+            <div class="social-login">
+                <div class="divider">
+                    <span>or continue with</span>
+                </div>
+                <div class="social-buttons">
+                    <button class="btn btn-outline btn-social" disabled>
+                        <span class="social-icon">🔵</span>
+                        Google
+                    </button>
+                    <button class="btn btn-outline btn-social" disabled>
+                        <span class="social-icon">🔵</span>
+                        Facebook
+                    </button>
+                </div>
+            </div>
+
+            <!-- Auth Mode Switch -->
+            <div class="auth-switch">
+                <span id="authSwitchText">Don't have an account?</span>
+                <button type="button" id="authSwitchBtn" class="btn btn-link">
+                    Sign Up
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- AI Fix Modal -->
+<div id="aiFixModal" class="modal-overlay" style="display: none;">
+    <div class="modal-container large-modal">
+        <div class="modal-header">
+            <h3>🤖 AI Transcript Fix</h3>
+            <button class="modal-close-btn" id="closeAIFixModal" aria-label="Close modal">
+                <span>×</span>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="ai-fix-options">
+                <h4>Fix Type Select करें</h4>
+                <div class="option-group">
+                    <label class="option-item">
+                        <input type="radio" name="fixType" value="sentence" checked>
+                        <span class="option-content">
+                            <span class="option-icon">📝</span>
+                            <span class="option-text">
+                                <strong>Sentence Separation</strong>
+                                <small>Run-on sentences को properly separate करें</small>
+                            </span>
+                        </span>
+                    </label>
+                    <label class="option-item">
+                        <input type="radio" name="fixType" value="phrase">
+                        <span class="option-content">
+                            <span class="option-icon">🔤</span>
+                            <span class="option-text">
+                                <strong>Phrase Detection</strong>
+                                <small>Important phrases और idioms identify करें</small>
+                            </span>
+                        </span>
+                    </label>
+                    <label class="option-item">
+                        <input type="radio" name="fixType" value="both">
+                        <span class="option-content">
+                            <span class="option-icon">🎯</span>
+                            <span class="option-text">
+                                <strong>Both Improvements</strong>
+                                <small>Complete transcript enhance करें</small>
+                            </span>
+                        </span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="preview-section">
+                <h4>Preview Changes</h4>
+                <div class="preview-container">
+                    <div class="preview-panel before-panel">
+                        <h5>Before Fix</h5>
+                        <div id="beforeFixContent" class="preview-content">
+                            Original transcript यहाँ दिखेगा...
+                        </div>
+                    </div>
+                    <div class="preview-panel after-panel">
+                        <h5>After AI Fix</h5>
+                        <div id="afterFixContent" class="preview-content">
+                            AI improved transcript यहाँ दिखेगा...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button id="previewAIFixBtn" class="btn btn-secondary">
+                    <span class="btn-icon">👁️</span>
+                    Preview Fix
+                </button>
+                <button id="applyAIFixBtn" class="btn btn-primary" disabled>
+                    <span class="btn-icon">✅</span>
+                    Apply AI Fix
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Vocabulary Bank Modal -->
+<div id="vocabularyModal" class="modal-overlay" style="display: none;">
+    <div class="modal-container large-modal">
+        <div class="modal-header">
+            <h3>📚 My Vocabulary Bank</h3>
+            <button class="modal-close-btn" id="closeVocabularyModal" aria-label="Close modal">
+                <span>×</span>
+            </button>
+        </div>
+        <div class="modal-body">
+            <!-- Vocabulary Statistics -->
+            <div class="vocabulary-stats">
+                <div class="stat-grid">
+                    <div class="stat-item">
+                        <div class="stat-value" id="totalWordsCount">0</div>
+                        <div class="stat-label">Words</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="totalPhrasesCount">0</div>
+                        <div class="stat-label">Phrases</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="masteredCount">0</div>
+                        <div class="stat-label">Mastered</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="dueForReviewCount">0</div>
+                        <div class="stat-label">Due for Review</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vocabulary Controls -->
+            <div class="vocabulary-controls">
+                <div class="search-container">
+                    <input type="text" id="vocabularySearch" class="search-input" 
+                           placeholder="Search words or phrases...">
+                    <span class="search-icon">🔍</span>
+                </div>
+                <div class="filter-tabs">
+                    <button class="filter-tab active" data-filter="all">All Items</button>
+                    <button class="filter-tab" data-filter="word">Words</button>
+                    <button class="filter-tab" data-filter="phrase">Phrases</button>
+                    <button class="filter-tab" data-filter="due">Due for Review</button>
+                    <button class="filter-tab" data-filter="favorite">Favorites</button>
+                </div>
+            </div>
+
+            <!-- Vocabulary List -->
+            <div class="vocabulary-list-container">
+                <div id="vocabularyList" class="vocabulary-list">
+                    <div class="empty-state">
+                        <div class="empty-icon">📚</div>
+                        <h4>No Vocabulary Items</h4>
+                        <p>Words या phrases save करने के बिए वे यहाँ दिखेंगे</p>
+                        <button class="btn btn-primary" onclick="app.closeModal('vocabularyModal')">
+                            Start Learning
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Settings Modal -->
-    <div id="settingsModal" class="modal-overlay" style="display: none;">
-        <div class="modal-container">
-            <div class="modal-header">
-                <h3>⚙️ Settings</h3>
-                <button class="modal-close-btn" id="closeSettingsModal" aria-label="Close modal">
-                    <span>×</span>
-                </button>
+<!-- Settings Modal -->
+<div id="settingsModal" class="modal-overlay" style="display: none;">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h3>⚙️ Settings</h3>
+            <button class="modal-close-btn" id="closeSettingsModal" aria-label="Close modal">
+                <span>×</span>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="settings-tabs">
+                <button class="settings-tab active" data-tab="general">General</button>
+                <button class="settings-tab" data-tab="playback">Playback</button>
+                <button class="settings-tab" data-tab="appearance">Appearance</button>
+                <button class="settings-tab" data-tab="account">Account</button>
             </div>
-            <div class="modal-body">
-                <div class="settings-tabs">
-                    <button class="settings-tab active" data-tab="general">General</button>
-                    <button class="settings-tab" data-tab="playback">Playback</button>
-                    <button class="settings-tab" data-tab="appearance">Appearance</button>
-                    <button class="settings-tab" data-tab="account">Account</button>
-                </div>
 
-                <div class="settings-content">
-                    <!-- General Settings -->
-                    <div id="generalSettings" class="settings-panel active">
-                        <div class="setting-group">
-                            <h4>Language Preferences</h4>
-                            <div class="setting-item">
-                                <label for="targetLanguage" class="setting-label">
-                                    Target Learning Language
-                                </label>
-                                <select id="targetLanguage" class="setting-input">
-                                    <option value="hi">Hindi</option>
-                                    <option value="es">Spanish</option>
-                                    <option value="fr">French</option>
-                                    <option value="de">German</option>
-                                    <option value="ja">Japanese</option>
-                                    <option value="ko">Korean</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="setting-group">
-                            <h4>Auto-Save Settings</h4>
-                            <div class="setting-item">
-                                <label class="setting-checkbox">
-                                    <input type="checkbox" id="autoSaveVocabulary" checked>
-                                    <span class="checkmark"></span>
-                                    Automatically save new vocabulary
-                                </label>
-                            </div>
-                            <div class="setting-item">
-                                <label class="setting-checkbox">
-                                    <input type="checkbox" id="autoSaveProgress" checked>
-                                    <span class="checkmark"></span>
-                                    Automatically save learning progress
-                                </label>
-                            </div>
+            <div class="settings-content">
+                <!-- General Settings -->
+                <div id="generalSettings" class="settings-panel active">
+                    <div class="setting-group">
+                        <h4>Language Preferences</h4>
+                        <div class="setting-item">
+                            <label for="targetLanguage" class="setting-label">
+                                Target Learning Language
+                            </label>
+                            <select id="targetLanguage" class="setting-input">
+                                <option value="hi">Hindi</option>
+                                <option value="es">Spanish</option>
+                                <option value="fr">French</option>
+                                <option value="de">German</option>
+                                <option value="ja">Japanese</option>
+                                <option value="ko">Korean</option>
+                            </select>
                         </div>
                     </div>
 
-                    <!-- Playback Settings -->
-                    <div id="playbackSettings" class="settings-panel">
-                        <div class="setting-group">
+                    <div class="setting-group">
+                        <h4>Auto-Save Settings</h4>
+                        <div class="setting-item">
+                            <label class="setting-checkbox">
+                                <input type="checkbox" id="autoSaveVocabulary" checked>
+                                <span class="checkmark"></span>
+                                Automatically save new vocabulary
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <label class="setting-checkbox">
+                                <input type="checkbox" id="autoSaveProgress" checked>
+                                <span class="checkmark"></span>
+                                Automatically save learning progress
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Playback Settings -->
+                <div id="playbackSettings" class="settings-panel">
+                    
+                         <div class="setting-group">
                             <h4>Video Playback</h4>
                             <div class="setting-item">
                                 <label for="playbackSpeed" class="setting-label">
@@ -849,7 +872,6 @@
             </div>
         </div>
     </div>
-
     <!-- Notification Container -->
     <div id="notificationContainer" class="notification-container"></div>
 
@@ -866,6 +888,54 @@
     <script src="js/components/AuthManager.js"></script>
     <script src="js/components/DualWindowManager.js"></script>
     <script src="js/app.js"></script>
+    <!-- EXISTING SCRIPTS के बाद यह LINES ADD करें -->
+    <script src="js/services/PronunciationService.js"></script>
+    <script src="js/components/DualWindowManager.js"></script>
+
+    <!-- Initialization Script -->
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        try {
+          if (!('speechSynthesis' in window)) {
+            console.warn('❌ This browser does not support speech synthesis');
+            showBrowserWarning();
+            return;
+          }
+
+          if (window.pronunciationService) {
+            console.log('✅ Pronunciation service initialized');
+            window.dualWindowManager = new DualWindowManager();
+            console.log('✅ Dual window manager initialized with pronunciation support');
+            
+            setTimeout(() => {
+              window.dualWindowManager.loadPronunciationPreferences();
+            }, 1000);
+            
+          } else {
+            console.error('❌ Pronunciation service not found');
+          }
+        } catch (error) {
+          console.error('❌ Pronunciation initialization error:', error);
+        }
+      });
+
+      function showBrowserWarning() {
+        const warningHtml = `
+          <div class="pronunciation-warning">
+            <div class="warning-icon">⚠️</div>
+            <div class="warning-content">
+              <h4>Pronunciation Not Supported</h4>
+              <p>Your browser does not support text-to-speech features. Please use Chrome, Firefox, or Edge for pronunciation functionality.</p>
+            </div>
+            <button class="warning-close" onclick="this.parentElement.remove()">×</button>
+          </div>
+        `;
+        
+        const warningContainer = document.createElement('div');
+        warningContainer.innerHTML = warningHtml;
+        document.body.appendChild(warningContainer.firstElementChild);
+      }
+    </script>
 
     <!-- Service Worker Registration -->
     <script>
@@ -883,7 +953,5 @@
         }
     </script>
 </body>
-</html>
-```       
-
-                  
+        </html>    
+ 
