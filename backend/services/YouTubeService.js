@@ -4,7 +4,6 @@ const util = require('util');
 const path = require('path');
 const fs = require('fs').promises;
 
-// promisify का use करके exec function को promise-based बनाएं
 const execAsync = util.promisify(exec);
 
 /**
@@ -15,38 +14,23 @@ class YouTubeService {
   constructor() {
     this.apiKey = process.env.YOUTUBE_API_KEY;
     this.baseURL = 'https://www.googleapis.com/youtube/v3';
-    
-    // yt-dlp executable path (system में installed होना चाहिए)
     this.ytdlpPath = process.env.YT_DLP_PATH || 'yt-dlp';
-    
-    // Temporary files directory
     this.tempDir = path.join(__dirname, '../temp');
     
     this.setupTempDir();
   }
 
-  /**
-   * Temporary directory setup करता है
-   * Downloaded files के लिए temporary storage
-   */
   async setupTempDir() {
     try {
       await fs.access(this.tempDir);
     } catch (error) {
-      // Directory नहीं है तो create करें
       await fs.mkdir(this.tempDir, { recursive: true });
     }
   }
 
-  /**
-   * YouTube Video ID extract करता है URL से
-   * @param {string} url - YouTube video URL
-   * @returns {string|null} - Video ID या null
-   */
   extractVideoId(url) {
     if (!url) return null;
 
-    // Various YouTube URL patterns handle करें
     const patterns = [
       /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/,
       /youtube\.com\/watch\?v=([^"&?\/\s]{11})/,
@@ -64,11 +48,6 @@ class YouTubeService {
     return null;
   }
 
-  /**
-   * YouTube Video Details fetch करता है YouTube Data API का use करके
-   * @param {string} videoId - YouTube video ID
-   * @returns {Object} - Video details
-   */
   async getVideoDetails(videoId) {
     try {
       if (!this.apiKey) {
@@ -81,7 +60,7 @@ class YouTubeService {
           id: videoId,
           key: this.apiKey
         },
-        timeout: 10000 // 10 seconds timeout
+        timeout: 10000
       });
 
       if (!response.data.items || response.data.items.length === 0) {
@@ -89,8 +68,6 @@ class YouTubeService {
       }
 
       const video = response.data.items[0];
-      
-      // ISO 8601 duration को seconds में convert करें
       const duration = this.parseDuration(video.contentDetails.duration);
       
       return {
@@ -114,7 +91,6 @@ class YouTubeService {
     } catch (error) {
       console.error('❌ YouTube video details fetch error:', error.message);
       
-      // Fallback: Mock data return करें (development के लिए)
       if (process.env.NODE_ENV === 'development') {
         return this.getMockVideoDetails(videoId);
       }
@@ -123,18 +99,11 @@ class YouTubeService {
     }
   }
 
-  /**
-   * YouTube Video Captions extract करता है yt-dlp का use करके
-   * @param {string} videoId - YouTube video ID
-   * @param {string} language - Captions language (default: 'en')
-   * @returns {Array} - Captions array
-   */
   async extractCaptions(videoId, language = 'en') {
     try {
       const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
       const outputFile = path.join(this.tempDir, `captions_${videoId}_${language}`);
 
-      // yt-dlp command build करें
       const command = [
         this.ytdlpPath,
         `--write-auto-sub`,
@@ -147,24 +116,19 @@ class YouTubeService {
 
       console.log(`🔍 Extracting captions with command: ${command}`);
 
-      // Command execute करें
       const { stdout, stderr } = await execAsync(command, { timeout: 30000 });
 
       if (stderr) {
         console.warn('⚠️ yt-dlp stderr:', stderr);
       }
 
-      // Generated subtitle file find करें
       const subtitleFile = await this.findSubtitleFile(outputFile, language);
       
       if (!subtitleFile) {
         throw new Error('Subtitles file generate नहीं हो पाया');
       }
 
-      // Subtitle file parse करें
       const captions = await this.parseSubtitleFile(subtitleFile);
-      
-      // Temporary file clean up करें
       await this.cleanupTempFiles(outputFile);
       
       return captions;
@@ -172,7 +136,6 @@ class YouTubeService {
     } catch (error) {
       console.error('❌ YouTube captions extract error:', error.message);
       
-      // Fallback: Mock captions return करें (development के लिए)
       if (process.env.NODE_ENV === 'development') {
         return this.getMockCaptions(videoId);
       }
@@ -181,12 +144,6 @@ class YouTubeService {
     }
   }
 
-  /**
-   * Subtitle file find करता है
-   * @param {string} basePath - File base path
-   * @param {string} language - Language code
-   * @returns {string|null} - File path या null
-   */
   async findSubtitleFile(basePath, language) {
     const possibleExtensions = ['.vtt', '.srt', '.json', '.txt'];
     
@@ -196,12 +153,10 @@ class YouTubeService {
         await fs.access(filePath);
         return filePath;
       } catch (error) {
-        // File नहीं मिली, continue
         continue;
       }
     }
     
-    // Language-specific files check करें
     for (const ext of possibleExtensions) {
       const filePath = `${basePath}.${language}${ext}`;
       try {
@@ -215,11 +170,6 @@ class YouTubeService {
     return null;
   }
 
-  /**
-   * Subtitle file parse करता है (VTT format support)
-   * @param {string} filePath - Subtitle file path
-   * @returns {Array} - Parsed captions array
-   */
   async parseSubtitleFile(filePath) {
     try {
       const content = await fs.readFile(filePath, 'utf8');
@@ -231,7 +181,6 @@ class YouTubeService {
       } else if (filePath.endsWith('.json')) {
         return this.parseJSONFile(content);
       } else {
-        // Default: text file के रूप में parse करें
         return this.parseTextFile(content);
       }
     } catch (error) {
@@ -239,11 +188,6 @@ class YouTubeService {
     }
   }
 
-  /**
-   * WebVTT (VTT) format parse करता है
-   * @param {string} content - VTT file content
-   * @returns {Array} - Parsed captions
-   */
   parseVTTFile(content) {
     const captions = [];
     const lines = content.split('\n');
@@ -253,13 +197,9 @@ class YouTubeService {
     for (const line of lines) {
       const lineTrimmed = line.trim();
       
-      // Empty lines skip करें
       if (!lineTrimmed) continue;
-      
-      // WEBVTT header skip करें
       if (lineTrimmed === 'WEBVTT') continue;
       
-      // Timestamp line (--> format)
       if (lineTrimmed.includes('-->')) {
         if (currentCaption) {
           captions.push(currentCaption);
@@ -274,18 +214,15 @@ class YouTubeService {
           };
         }
       } 
-      // Text line
       else if (currentCaption && !lineTrimmed.match(/^\d+$/)) {
         currentCaption.text += (currentCaption.text ? ' ' : '') + lineTrimmed;
       }
     }
     
-    // Last caption add करें
     if (currentCaption && currentCaption.text) {
       captions.push(currentCaption);
     }
     
-    // Convert to our format
     return captions.map(caption => ({
       text: caption.text,
       start: caption.start,
@@ -293,11 +230,6 @@ class YouTubeService {
     }));
   }
 
-  /**
-   * VTT timestamp parse करता है (HH:MM:SS.mmm format)
-   * @param {string} timeStr - Time string
-   * @returns {number} - Time in seconds
-   */
   parseVTTTime(timeStr) {
     const parts = timeStr.split(':');
     if (parts.length === 3) {
@@ -309,30 +241,16 @@ class YouTubeService {
     return 0;
   }
 
-  /**
-   * SRT format parse करता है
-   * @param {string} content - SRT file content
-   * @returns {Array} - Parsed captions
-   */
   parseSRTFile(content) {
-    // Similar to VTT parsing but with SRT format
-    // Implementation for SRT format
-    return this.parseVTTFile(content); // Temporary implementation
+    return this.parseVTTFile(content);
   }
 
-  /**
-   * JSON format parse करता है
-   * @param {string} content - JSON file content
-   * @returns {Array} - Parsed captions
-   */
   parseJSONFile(content) {
     try {
       const data = JSON.parse(content);
-      // Different JSON formats handle करें
       if (Array.isArray(data)) {
         return data;
       } else if (data.events) {
-        // YouTube JSON format
         return data.events
           .filter(event => event.segs)
           .map(event => ({
@@ -347,15 +265,9 @@ class YouTubeService {
     }
   }
 
-  /**
-   * Text file parse करता है
-   * @param {string} content - Text content
-   * @returns {Array} - Parsed captions
-   */
   parseTextFile(content) {
-    // Simple text parsing - each line as a caption
     const lines = content.split('\n').filter(line => line.trim());
-    const avgDuration = 5; // Assume 5 seconds per line
+    const avgDuration = 5;
     
     return lines.map((line, index) => ({
       text: line.trim(),
@@ -364,10 +276,6 @@ class YouTubeService {
     }));
   }
 
-  /**
-   * Temporary files clean up करता है
-   * @param {string} basePath - Base file path
-   */
   async cleanupTempFiles(basePath) {
     try {
       const files = await fs.readdir(this.tempDir);
@@ -383,11 +291,6 @@ class YouTubeService {
     }
   }
 
-  /**
-   * ISO 8601 duration parse करता है (YouTube API format)
-   * @param {string} duration - ISO 8601 duration string
-   * @returns {number} - Duration in seconds
-   */
   parseDuration(duration) {
     const match = duration.match(/PT(\d+H)?(\d+M)?(\d+S)?/);
     
@@ -398,13 +301,6 @@ class YouTubeService {
     return hours * 3600 + minutes * 60 + seconds;
   }
 
-  /**
-   * YouTube Channel Videos fetch करता है
-   * @param {string} channelId - YouTube channel ID
-   * @param {number} maxResults - Maximum results (default: 20)
-   * @param {string} pageToken - Pagination token
-   * @returns {Object} - Channel videos data
-   */
   async getChannelVideos(channelId, maxResults = 20, pageToken = null) {
     try {
       const response = await axios.get(`${this.baseURL}/search`, {
@@ -438,14 +334,6 @@ class YouTubeService {
     }
   }
 
-  /**
-   * YouTube Search perform करता है
-   * @param {string} query - Search query
-   * @param {number} maxResults - Maximum results (default: 20)
-   * @param {string} pageToken - Pagination token
-   * @param {string} type - Search type (video, channel, playlist)
-   * @returns {Object} - Search results
-   */
   async searchVideos(query, maxResults = 20, pageToken = null, type = 'video') {
     try {
       const response = await axios.get(`${this.baseURL}/search`, {
@@ -480,13 +368,6 @@ class YouTubeService {
     }
   }
 
-  /**
-   * YouTube Playlist Items fetch करता है
-   * @param {string} playlistId - Playlist ID
-   * @param {number} maxResults - Maximum results (default: 20)
-   * @param {string} pageToken - Pagination token
-   * @returns {Object} - Playlist items
-   */
   async getPlaylistItems(playlistId, maxResults = 20, pageToken = null) {
     try {
       const response = await axios.get(`${this.baseURL}/playlistItems`, {
@@ -519,20 +400,14 @@ class YouTubeService {
     }
   }
 
-  /**
-   * Transcript Availability check करता है
-   * @param {string} videoId - YouTube video ID
-   * @returns {Object} - Availability information
-   */
   async checkTranscriptAvailability(videoId) {
     try {
-      // Try to extract captions to check availability
       const captions = await this.extractCaptions(videoId, 'en');
       
       return {
         available: captions.length > 0,
         language: 'en',
-        autoGenerated: true, // YouTube auto-generated captions
+        autoGenerated: true,
         manual: false
       };
 
@@ -547,17 +422,12 @@ class YouTubeService {
     }
   }
 
-  /**
-   * Mock Video Details (Development के लिए)
-   * @param {string} videoId - Video ID
-   * @returns {Object} - Mock video details
-   */
   getMockVideoDetails(videoId) {
     return {
       videoId: videoId,
       title: `Demo Video - Learning English with AI (${videoId})`,
       description: "This is a demo video for testing the transcript app. Learn English with AI-powered transcripts and vocabulary tools.",
-      duration: 360, // 6 minutes
+      duration: 360,
       thumbnail: `https://img.youtube.com/vi/${videoId}/default.jpg`,
       channel: {
         name: "Demo Education Channel",
@@ -572,11 +442,6 @@ class YouTubeService {
     };
   }
 
-  /**
-   * Mock Captions (Development के लिए)
-   * @param {string} videoId - Video ID
-   * @returns {Array} - Mock captions
-   */
   getMockCaptions(videoId) {
     return [
       {
