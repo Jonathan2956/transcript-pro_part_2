@@ -3,6 +3,7 @@ const { body, validationResult } = require('express-validator');
 const { auth } = require('../middleware/auth');
 const YouTubeService = require('../services/YouTubeService');
 const logger = require('../utils/logger');
+const User = require('../models/User');
 
 const router = express.Router();
 const youtubeService = new YouTubeService();
@@ -13,12 +14,11 @@ const youtubeService = new YouTubeService();
  * YouTube video की details fetch करता है
  */
 router.get('/video/:videoId', [
-  auth, // Authentication required
+  auth,
 ], async (req, res) => {
   try {
     const { videoId } = req.params;
     
-    // Input validation
     if (!videoId || videoId.length !== 11) {
       return res.status(400).json({
         error: 'Valid YouTube video ID आवश्यक है (11 characters)'
@@ -30,7 +30,6 @@ router.get('/video/:videoId', [
       videoId
     });
 
-    // YouTube से video details fetch करें
     const videoDetails = await youtubeService.getVideoDetails(videoId);
     
     res.json({
@@ -85,7 +84,6 @@ router.post('/captions/:videoId', [
       language
     });
 
-    // Captions extract करें
     const captions = await youtubeService.extractCaptions(videoId, language);
     
     if (!captions || captions.length === 0) {
@@ -144,7 +142,6 @@ router.get('/channel/:channelId/videos', [
       maxResults
     });
 
-    // Channel videos fetch करें
     const channelVideos = await youtubeService.getChannelVideos(
       channelId, 
       parseInt(maxResults), 
@@ -194,7 +191,6 @@ router.get('/search', [
       maxResults
     });
 
-    // YouTube पर search करें
     const searchResults = await youtubeService.searchVideos(
       q.trim(),
       parseInt(maxResults),
@@ -245,7 +241,6 @@ router.get('/playlist/:playlistId', [
       maxResults
     });
 
-    // Playlist items fetch करें
     const playlistItems = await youtubeService.getPlaylistItems(
       playlistId,
       parseInt(maxResults),
@@ -293,7 +288,6 @@ router.get('/transcript-availability/:videoId', [
       videoId
     });
 
-    // Transcript availability check करें
     const availability = await youtubeService.checkTranscriptAvailability(videoId);
 
     res.json({
@@ -310,6 +304,151 @@ router.get('/transcript-availability/:videoId', [
 
     res.status(500).json({
       error: 'Transcript availability check करने में error आया',
+      message: error.message
+    });
+  }
+});
+
+// =============================================
+// NEW: PRONUNCIATION ROUTES
+// =============================================
+
+/**
+ * Pronunciation preferences save करने का endpoint
+ * POST /api/youtube/pronunciation-preferences
+ */
+router.post('/pronunciation-preferences', [
+  auth
+], async (req, res) => {
+  try {
+    const {
+      enabled,
+      sentenceEnabled,
+      phraseEnabled,
+      sentenceLanguage,
+      phraseLanguage,
+      autoDetect,
+      skipHindiOriginal
+    } = req.body;
+
+    logger.info('💬 Saving pronunciation preferences', {
+      userId: req.user._id,
+      preferences: req.body
+    });
+
+    await User.findByIdAndUpdate(req.user._id, {
+      $set: {
+        'preferences.pronunciation': {
+          enabled: enabled !== undefined ? enabled : true,
+          sentenceEnabled: sentenceEnabled !== undefined ? sentenceEnabled : true,
+          phraseEnabled: phraseEnabled !== undefined ? phraseEnabled : true,
+          sentenceLanguage: sentenceLanguage || 'auto',
+          phraseLanguage: phraseLanguage || 'auto',
+          autoDetect: autoDetect !== undefined ? autoDetect : true,
+          skipHindiOriginal: skipHindiOriginal !== undefined ? skipHindiOriginal : true
+        }
+      }
+    });
+
+    res.json({
+      success: true,
+      message: 'Pronunciation preferences saved successfully'
+    });
+
+  } catch (error) {
+    logger.error('❌ Pronunciation preferences save error:', {
+      error: error.message,
+      userId: req.user._id
+    });
+
+    res.status(500).json({
+      error: 'Pronunciation preferences save करने में error आया',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * Pronunciation preferences fetch करने का endpoint
+ * GET /api/youtube/pronunciation-preferences
+ */
+router.get('/pronunciation-preferences', [
+  auth
+], async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    
+    if (!user) {
+      return res.status(404).json({
+        error: 'User not found'
+      });
+    }
+
+    const pronunciationPrefs = user.preferences.pronunciation || {
+      enabled: true,
+      sentenceEnabled: true,
+      phraseEnabled: true,
+      sentenceLanguage: 'auto',
+      phraseLanguage: 'auto',
+      autoDetect: true,
+      skipHindiOriginal: true
+    };
+
+    res.json({
+      success: true,
+      data: pronunciationPrefs
+    });
+
+  } catch (error) {
+    logger.error('❌ Pronunciation preferences fetch error:', {
+      error: error.message,
+      userId: req.user._id
+    });
+
+    res.status(500).json({
+      error: 'Pronunciation preferences fetch करने में error आया',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * Video-specific pronunciation settings save करने का endpoint
+ * POST /api/youtube/:videoId/pronunciation-settings
+ */
+router.post('/:videoId/pronunciation-settings', [
+  auth
+], async (req, res) => {
+  try {
+    const { videoId } = req.params;
+    const { pronunciationSettings } = req.body;
+
+    logger.info('🎵 Saving video pronunciation settings', {
+      userId: req.user._id,
+      videoId,
+      settings: pronunciationSettings
+    });
+
+    await User.findByIdAndUpdate(req.user._id, {
+      $set: {
+        [`pronunciationSettings.${videoId}`]: pronunciationSettings
+      }
+    });
+
+    res.json({
+      success: true,
+      message: 'Video pronunciation settings saved successfully'
+    });
+
+  } catch (error) {
+    logger.error('❌ Video pronunciation settings save error:', {
+      error: error.message,
+      videoId: req.params.videoId,
+      userId: req.user._id
+    });
+
+    res.status(500).json({
+      error: 'Video pronunciation settings save करने में error आया',
       message: error.message
     });
   }
