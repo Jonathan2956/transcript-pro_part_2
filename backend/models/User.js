@@ -24,7 +24,6 @@ const userSchema = new mongoose.Schema({
     lowercase: true,
     validate: {
       validator: function(email) {
-        // Email validation regex
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
       },
       message: 'कृपया valid email address provide करें'
@@ -35,18 +34,18 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Password आवश्यक है'],
     minlength: [6, 'Password कम से कम 6 characters का होना चाहिए'],
-    select: false // Default में query में password नहीं आएगा
+    select: false
   },
   
   // User preferences और settings
   preferences: {
     language: {
       type: String,
-      default: 'hi' // Default language Hindi
+      default: 'hi'
     },
     autoSave: {
       type: Boolean,
-      default: true // Automatically save vocabulary
+      default: true
     },
     theme: {
       type: String,
@@ -66,6 +65,25 @@ const userSchema = new mongoose.Schema({
     notifications: {
       email: { type: Boolean, default: true },
       push: { type: Boolean, default: true }
+    },
+    
+    // NEW: Pronunciation preferences
+    pronunciation: {
+      enabled: { type: Boolean, default: true },
+      sentenceEnabled: { type: Boolean, default: true },
+      phraseEnabled: { type: Boolean, default: true },
+      sentenceLanguage: { 
+        type: String, 
+        enum: ['auto', 'en', 'hi', 'es', 'fr', 'de'], 
+        default: 'auto' 
+      },
+      phraseLanguage: { 
+        type: String, 
+        enum: ['auto', 'en', 'hi', 'es', 'fr', 'de'], 
+        default: 'auto' 
+      },
+      autoDetect: { type: Boolean, default: true },
+      skipHindiOriginal: { type: Boolean, default: true }
     }
   },
   
@@ -73,7 +91,7 @@ const userSchema = new mongoose.Schema({
   profile: {
     firstName: String,
     lastName: String,
-    avatar: String, // Cloudinary URL
+    avatar: String,
     bio: {
       type: String,
       maxlength: 500
@@ -96,7 +114,7 @@ const userSchema = new mongoose.Schema({
     },
     totalTimeSpent: { 
       type: Number, 
-      default: 0 // Seconds में
+      default: 0
     },
     wordsLearned: { 
       type: Number, 
@@ -112,7 +130,7 @@ const userSchema = new mongoose.Schema({
       lastActivity: Date
     },
     accuracy: {
-      vocabulary: { type: Number, default: 0 }, // Percentage
+      vocabulary: { type: Number, default: 0 },
       comprehension: { type: Number, default: 0 }
     },
     lastActivity: { 
@@ -163,6 +181,13 @@ const userSchema = new mongoose.Schema({
       email: String
     }
   },
+
+  // NEW: Pronunciation settings for specific videos
+  pronunciationSettings: {
+    type: Map,
+    of: Object,
+    default: {}
+  },
   
   // Timestamps
   createdAt: {
@@ -174,18 +199,17 @@ const userSchema = new mongoose.Schema({
     default: Date.now
   }
 }, {
-  // Virtual fields include करने के लिए
   toJSON: { virtuals: true },
   toObject: { virtuals: true }
 });
 
-// Virtual fields - Database में store नहीं होते लेकिन query में available होते हैं
+// Virtual fields
 userSchema.virtual('fullName').get(function() {
   return `${this.profile.firstName || ''} ${this.profile.lastName || ''}`.trim();
 });
 
 userSchema.virtual('accountAge').get(function() {
-  return Math.floor((Date.now() - this.createdAt) / (1000 * 60 * 60 * 24)); // Days में
+  return Math.floor((Date.now() - this.createdAt) / (1000 * 60 * 60 * 24));
 });
 
 userSchema.virtual('isPremium').get(function() {
@@ -194,7 +218,7 @@ userSchema.virtual('isPremium').get(function() {
          new Date() < this.subscription.currentPeriodEnd;
 });
 
-// Indexes - Database queries को fast करने के लिए
+// Indexes
 userSchema.index({ email: 1 });
 userSchema.index({ username: 1 });
 userSchema.index({ 'statistics.lastActivity': -1 });
@@ -202,16 +226,12 @@ userSchema.index({ 'subscription.currentPeriodEnd': 1 });
 
 /**
  * Password hash करने का middleware
- * User save होने से पहले automatically password hash करेगा
  */
 userSchema.pre('save', async function(next) {
-  // अगर password modify नहीं हुआ है तो skip करें
   if (!this.isModified('password')) return next();
   
   try {
-    // Salt generate करें
     const salt = await bcrypt.genSalt(12);
-    // Password hash करें
     this.password = await bcrypt.hash(this.password, salt);
     next();
   } catch (error) {
@@ -229,7 +249,6 @@ userSchema.pre('save', function(next) {
 
 /**
  * Password compare करने का method
- * Login के time पर use होगा
  */
 userSchema.methods.comparePassword = async function(candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
@@ -239,16 +258,13 @@ userSchema.methods.comparePassword = async function(candidatePassword) {
  * Password reset token generate करने का method
  */
 userSchema.methods.getResetPasswordToken = function() {
-  // Random token generate करें
   const resetToken = require('crypto').randomBytes(20).toString('hex');
   
-  // Token hash करें और database में save करें
   this.resetPasswordToken = require('crypto')
     .createHash('sha256')
     .update(resetToken)
     .digest('hex');
   
-  // Token expire time set करें (10 minutes)
   this.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
   
   return resetToken;
@@ -260,7 +276,6 @@ userSchema.methods.getResetPasswordToken = function() {
 userSchema.methods.updateStatistics = function(activity) {
   const now = new Date();
   
-  // Streak update करें
   const lastActivity = new Date(this.statistics.lastActivity);
   const isNewDay = now.toDateString() !== lastActivity.toDateString();
   
@@ -268,23 +283,64 @@ userSchema.methods.updateStatistics = function(activity) {
     const dayDifference = Math.floor((now - lastActivity) / (1000 * 60 * 60 * 24));
     
     if (dayDifference === 1) {
-      // Consecutive day
       this.statistics.streaks.current += 1;
     } else if (dayDifference > 1) {
-      // Streak broken
       this.statistics.streaks.current = 1;
     }
     
-    // Longest streak update करें
     if (this.statistics.streaks.current > this.statistics.streaks.longest) {
       this.statistics.streaks.longest = this.statistics.streaks.current;
     }
   }
   
-  // Last activity update करें
   this.statistics.lastActivity = now;
   
   return this.save();
+};
+
+/**
+ * NEW: Pronunciation preferences update करने का method
+ */
+userSchema.methods.updatePronunciationPreferences = function(preferences) {
+  if (preferences.enabled !== undefined) {
+    this.preferences.pronunciation.enabled = preferences.enabled;
+  }
+  if (preferences.sentenceEnabled !== undefined) {
+    this.preferences.pronunciation.sentenceEnabled = preferences.sentenceEnabled;
+  }
+  if (preferences.phraseEnabled !== undefined) {
+    this.preferences.pronunciation.phraseEnabled = preferences.phraseEnabled;
+  }
+  if (preferences.sentenceLanguage !== undefined) {
+    this.preferences.pronunciation.sentenceLanguage = preferences.sentenceLanguage;
+  }
+  if (preferences.phraseLanguage !== undefined) {
+    this.preferences.pronunciation.phraseLanguage = preferences.phraseLanguage;
+  }
+  if (preferences.autoDetect !== undefined) {
+    this.preferences.pronunciation.autoDetect = preferences.autoDetect;
+  }
+  if (preferences.skipHindiOriginal !== undefined) {
+    this.preferences.pronunciation.skipHindiOriginal = preferences.skipHindiOriginal;
+  }
+  
+  this.updatedAt = Date.now();
+  return this.save();
+};
+
+/**
+ * NEW: Pronunciation preferences get करने का method
+ */
+userSchema.methods.getPronunciationPreferences = function() {
+  return {
+    enabled: this.preferences.pronunciation.enabled,
+    sentenceEnabled: this.preferences.pronunciation.sentenceEnabled,
+    phraseEnabled: this.preferences.pronunciation.phraseEnabled,
+    sentenceLanguage: this.preferences.pronunciation.sentenceLanguage,
+    phraseLanguage: this.preferences.pronunciation.phraseLanguage,
+    autoDetect: this.preferences.pronunciation.autoDetect,
+    skipHindiOriginal: this.preferences.pronunciation.skipHindiOriginal
+  };
 };
 
 /**
@@ -293,7 +349,6 @@ userSchema.methods.updateStatistics = function(activity) {
 userSchema.methods.toJSON = function() {
   const user = this.toObject();
   
-  // Sensitive fields remove करें
   delete user.password;
   delete user.verificationToken;
   delete user.resetPasswordToken;
@@ -303,5 +358,4 @@ userSchema.methods.toJSON = function() {
   return user;
 };
 
-// Model create करें और export करें
 module.exports = mongoose.model('User', userSchema);
