@@ -8,12 +8,19 @@ const execAsync = util.promisify(exec);
 
 /**
  * YouTubeService - YouTube related operations handle करता है
- * YouTube Data API और yt-dlp का use करके videos और captions fetch करता है
+ * Piped API और yt-dlp का use करके videos और captions fetch करता है
  */
 class YouTubeService {
   constructor() {
-    this.apiKey = process.env.YOUTUBE_API_KEY;
-    this.baseURL = 'https://www.googleapis.com/youtube/v3';
+    // Multiple Piped API instances for redundancy और fast response
+    this.pipedInstances = [
+      'https://pipedapi.kavin.rocks',
+      'https://pipedapi.moomoo.me', 
+      'https://pipedapi-libre.kavin.rocks',
+      'https://pipedapi.smnz.de',
+      'https://pipedapi.in.projectsegfau.lt'
+    ];
+    this.currentInstanceIndex = 0;
     this.ytdlpPath = process.env.YT_DLP_PATH || 'yt-dlp';
     this.tempDir = path.join(__dirname, '../temp');
     
@@ -25,6 +32,55 @@ class YouTubeService {
       await fs.access(this.tempDir);
     } catch (error) {
       await fs.mkdir(this.tempDir, { recursive: true });
+    }
+  }
+
+  /**
+   * Get current active Piped API instance
+   */
+  getCurrentInstance() {
+    return this.pipedInstances[this.currentInstanceIndex];
+  }
+
+  /**
+   * Rotate to next Piped API instance if current fails
+   */
+  rotateInstance() {
+    this.currentInstanceIndex = (this.currentInstanceIndex + 1) % this.pipedInstances.length;
+    console.log(`🔄 Switching to Piped API instance: ${this.getCurrentInstance()}`);
+  }
+
+  /**
+   * Make request with fallback to other instances
+   */
+  async makeRequestWithFallback(url, options = {}) {
+    const maxRetries = this.pipedInstances.length;
+    
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        const instance = this.getCurrentInstance();
+        const fullUrl = `${instance}${url}`;
+        
+        console.log(`🔍 Attempting request to: ${fullUrl}`);
+        
+        const response = await axios({
+          url: fullUrl,
+          timeout: 10000,
+          ...options
+        });
+
+        return response;
+
+      } catch (error) {
+        console.warn(`⚠️ Piped API instance failed (attempt ${attempt + 1}):`, error.message);
+        
+        if (attempt < maxRetries - 1) {
+          this.rotateInstance();
+          continue;
+        }
+        
+        throw new Error(`All Piped API instances failed: ${error.message}`);
+      }
     }
   }
 
@@ -50,46 +106,37 @@ class YouTubeService {
 
   async getVideoDetails(videoId) {
     try {
-      if (!this.apiKey) {
-        throw new Error('YouTube API key configured नहीं है');
-      }
+      console.log(`🎬 Fetching video details from Piped API: ${videoId}`);
 
-      const response = await axios.get(`${this.baseURL}/videos`, {
-        params: {
-          part: 'snippet,contentDetails,statistics',
-          id: videoId,
-          key: this.apiKey
-        },
-        timeout: 10000
-      });
+      const response = await this.makeRequestWithFallback(`/streams/${videoId}`);
 
-      if (!response.data.items || response.data.items.length === 0) {
+      if (!response.data) {
         throw new Error(`Video नहीं मिली: ${videoId}`);
       }
 
-      const video = response.data.items[0];
-      const duration = this.parseDuration(video.contentDetails.duration);
+      const video = response.data;
+      const duration = video.duration || 0;
       
       return {
-        videoId: video.id,
-        title: video.snippet.title,
-        description: video.snippet.description,
+        videoId: videoId,
+        title: video.title || 'Unknown Title',
+        description: video.description || '',
         duration: duration,
-        thumbnail: video.snippet.thumbnails.default?.url || video.snippet.thumbnails.standard?.url,
+        thumbnail: video.thumbnailUrl || `https://img.youtube.com/vi/${videoId}/default.jpg`,
         channel: {
-          name: video.snippet.channelTitle,
-          id: video.snippet.channelId
+          name: video.uploader || 'Unknown Channel',
+          id: video.uploaderUrl ? this.extractChannelId(video.uploaderUrl) : 'unknown'
         },
         statistics: {
-          viewCount: video.statistics?.viewCount || 0,
-          likeCount: video.statistics?.likeCount || 0,
-          commentCount: video.statistics?.commentCount || 0
+          viewCount: video.views || 0,
+          likeCount: video.likes || 0,
+          commentCount: 0 // Piped API doesn't provide comment count
         },
-        publishedAt: video.snippet.publishedAt
+        publishedAt: video.uploadDate || new Date().toISOString()
       };
 
     } catch (error) {
-      console.error('❌ YouTube video details fetch error:', error.message);
+      console.error('❌ Piped API video details fetch error:', error.message);
       
       if (process.env.NODE_ENV === 'development') {
         return this.getMockVideoDetails(videoId);
@@ -99,7 +146,61 @@ class YouTubeService {
     }
   }
 
+  extractChannelId(channelUrl) {
+    if (!channelUrl) return 'unknown';
+    const match = channelUrl.match(/\/channel\/([^\/]+)/);
+    return match ? match[1] : 'unknown';
+  }
+
   async extractCaptions(videoId, language = 'en') {
+    try {
+      console.log(`📝 Fetching captions from Piped API: ${videoId}`);
+
+      // First get available captions
+      const captionsResponse = await this.makeRequestWithFallback(`/captions/${videoId}`);
+      
+      if (!captionsResponse.data || !captionsResponse.data.subtitles) {
+        throw new Error('इस video के लिए captions available नहीं हैं');
+      }
+
+      const subtitles = captionsResponse.data.subtitles;
+      
+      // Find the requested language or fallback to English
+      let targetCaption = subtitles.find(sub => sub.code === language);
+      if (!targetCaption) {
+        targetCaption = subtitles.find(sub => sub.code === 'en');
+      }
+      if (!targetCaption) {
+        targetCaption = subtitles[0]; // Fallback to first available
+      }
+
+      if (!targetCaption) {
+        throw new Error('No captions available for this video');
+      }
+
+      // Fetch the actual caption content
+      const captionContentResponse = await axios.get(targetCaption.url, {
+        timeout: 15000
+      });
+
+      const captions = this.parseVTTFile(captionContentResponse.data);
+      
+      if (!captions || captions.length === 0) {
+        throw new Error('Captions parse नहीं हो पाए');
+      }
+
+      return captions;
+
+    } catch (error) {
+      console.error('❌ Piped API captions extract error:', error.message);
+      
+      // Fallback to yt-dlp if Piped API fails
+      console.log('🔄 Falling back to yt-dlp for captions extraction...');
+      return await this.extractCaptionsWithYtDlp(videoId, language);
+    }
+  }
+
+  async extractCaptionsWithYtDlp(videoId, language = 'en') {
     try {
       const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
       const outputFile = path.join(this.tempDir, `captions_${videoId}_${language}`);
@@ -114,7 +215,7 @@ class YouTubeService {
         `"${videoUrl}"`
       ].join(' ');
 
-      console.log(`🔍 Extracting captions with command: ${command}`);
+      console.log(`🔍 Extracting captions with yt-dlp: ${command}`);
 
       const { stdout, stderr } = await execAsync(command, { timeout: 30000 });
 
@@ -134,7 +235,7 @@ class YouTubeService {
       return captions;
 
     } catch (error) {
-      console.error('❌ YouTube captions extract error:', error.message);
+      console.error('❌ yt-dlp captions extract error:', error.message);
       
       if (process.env.NODE_ENV === 'development') {
         return this.getMockCaptions(videoId);
@@ -292,6 +393,10 @@ class YouTubeService {
   }
 
   parseDuration(duration) {
+    if (typeof duration === 'number') {
+      return duration;
+    }
+    
     const match = duration.match(/PT(\d+H)?(\d+M)?(\d+S)?/);
     
     const hours = (parseInt(match[1]) || 0);
@@ -303,110 +408,117 @@ class YouTubeService {
 
   async getChannelVideos(channelId, maxResults = 20, pageToken = null) {
     try {
-      const response = await axios.get(`${this.baseURL}/search`, {
-        params: {
-          part: 'snippet',
-          channelId: channelId,
-          maxResults: maxResults,
-          order: 'date',
-          type: 'video',
-          pageToken: pageToken,
-          key: this.apiKey
-        },
-        timeout: 10000
-      });
+      // Piped API doesn't have direct channel videos endpoint like YouTube
+      // We'll use search as fallback
+      const response = await this.makeRequestWithFallback(`/search?q=channel:${channelId}&filter=all`);
+
+      if (!response.data || !response.data.items) {
+        return { videos: [], nextPageToken: null, totalResults: 0 };
+      }
+
+      const videos = response.data.items
+        .filter(item => item.type === 'stream')
+        .slice(0, maxResults)
+        .map(item => ({
+          videoId: item.url.replace('/watch?v=', ''),
+          title: item.title,
+          description: item.description,
+          thumbnail: item.thumbnail,
+          publishedAt: item.uploadedDate || new Date().toISOString()
+        }));
 
       return {
-        videos: response.data.items.map(item => ({
-          videoId: item.id.videoId,
-          title: item.snippet.title,
-          description: item.snippet.description,
-          thumbnail: item.snippet.thumbnails.default?.url,
-          publishedAt: item.snippet.publishedAt
-        })),
-        nextPageToken: response.data.nextPageToken,
-        totalResults: response.data.pageInfo?.totalResults || 0
+        videos: videos,
+        nextPageToken: null, // Piped API doesn't support pagination tokens
+        totalResults: videos.length
       };
 
     } catch (error) {
-      console.error('❌ Channel videos fetch error:', error.message);
+      console.error('❌ Piped API channel videos fetch error:', error.message);
       throw new Error(`Channel videos fetch failed: ${error.message}`);
     }
   }
 
   async searchVideos(query, maxResults = 20, pageToken = null, type = 'video') {
     try {
-      const response = await axios.get(`${this.baseURL}/search`, {
-        params: {
-          part: 'snippet',
-          q: query,
-          maxResults: maxResults,
-          type: type,
-          pageToken: pageToken,
-          key: this.apiKey
-        },
-        timeout: 10000
-      });
+      const response = await this.makeRequestWithFallback(`/search?q=${encodeURIComponent(query)}&filter=all`);
+
+      if (!response.data || !response.data.items) {
+        return { results: [], nextPageToken: null, totalResults: 0 };
+      }
+
+      const results = response.data.items
+        .filter(item => {
+          if (type === 'video') return item.type === 'stream';
+          if (type === 'channel') return item.type === 'channel';
+          if (type === 'playlist') return item.type === 'playlist';
+          return true;
+        })
+        .slice(0, maxResults)
+        .map(item => ({
+          id: item.url ? item.url.split('/').pop() : item.name,
+          type: item.type,
+          title: item.title,
+          description: item.description,
+          thumbnail: item.thumbnail,
+          channelTitle: item.uploaderName,
+          publishedAt: item.uploadedDate || new Date().toISOString()
+        }));
 
       return {
-        results: response.data.items.map(item => ({
-          id: item.id.videoId || item.id.channelId || item.id.playlistId,
-          type: item.id.kind.replace('youtube#', ''),
-          title: item.snippet.title,
-          description: item.snippet.description,
-          thumbnail: item.snippet.thumbnails.default?.url,
-          channelTitle: item.snippet.channelTitle,
-          publishedAt: item.snippet.publishedAt
-        })),
-        nextPageToken: response.data.nextPageToken,
-        totalResults: response.data.pageInfo?.totalResults || 0
+        results: results,
+        nextPageToken: null, // Piped API doesn't support pagination tokens
+        totalResults: results.length
       };
 
     } catch (error) {
-      console.error('❌ YouTube search error:', error.message);
+      console.error('❌ Piped API search error:', error.message);
       throw new Error(`Search failed: ${error.message}`);
     }
   }
 
   async getPlaylistItems(playlistId, maxResults = 20, pageToken = null) {
     try {
-      const response = await axios.get(`${this.baseURL}/playlistItems`, {
-        params: {
-          part: 'snippet',
-          playlistId: playlistId,
-          maxResults: maxResults,
-          pageToken: pageToken,
-          key: this.apiKey
-        },
-        timeout: 10000
-      });
+      const response = await this.makeRequestWithFallback(`/playlists/${playlistId}`);
+
+      if (!response.data || !response.data.relatedStreams) {
+        return { items: [], nextPageToken: null, totalResults: 0 };
+      }
+
+      const items = response.data.relatedStreams
+        .slice(0, maxResults)
+        .map((item, index) => ({
+          videoId: item.url.replace('/watch?v=', ''),
+          title: item.title,
+          description: item.description,
+          thumbnail: item.thumbnail,
+          position: index,
+          publishedAt: item.uploadedDate || new Date().toISOString()
+        }));
 
       return {
-        items: response.data.items.map(item => ({
-          videoId: item.snippet.resourceId.videoId,
-          title: item.snippet.title,
-          description: item.snippet.description,
-          thumbnail: item.snippet.thumbnails.default?.url,
-          position: item.snippet.position,
-          publishedAt: item.snippet.publishedAt
-        })),
-        nextPageToken: response.data.nextPageToken,
-        totalResults: response.data.pageInfo?.totalResults || 0
+        items: items,
+        nextPageToken: null, // Piped API doesn't support pagination tokens
+        totalResults: items.length
       };
 
     } catch (error) {
-      console.error('❌ Playlist items fetch error:', error.message);
+      console.error('❌ Piped API playlist items fetch error:', error.message);
       throw new Error(`Playlist items fetch failed: ${error.message}`);
     }
   }
 
   async checkTranscriptAvailability(videoId) {
     try {
-      const captions = await this.extractCaptions(videoId, 'en');
+      const response = await this.makeRequestWithFallback(`/captions/${videoId}`);
       
+      const available = response.data && 
+                       response.data.subtitles && 
+                       response.data.subtitles.length > 0;
+
       return {
-        available: captions.length > 0,
-        language: 'en',
+        available: available,
+        language: available ? response.data.subtitles[0].code : null,
         autoGenerated: true,
         manual: false
       };
@@ -420,6 +532,38 @@ class YouTubeService {
         error: error.message
       };
     }
+  }
+
+  /**
+   * Get Piped API instance status for monitoring
+   */
+  async getInstanceStatus() {
+    const status = [];
+    
+    for (let i = 0; i < this.pipedInstances.length; i++) {
+      try {
+        const startTime = Date.now();
+        await axios.get(`${this.pipedInstances[i]}/trending`, { timeout: 5000 });
+        const responseTime = Date.now() - startTime;
+        
+        status.push({
+          instance: this.pipedInstances[i],
+          status: 'online',
+          responseTime: responseTime,
+          isCurrent: i === this.currentInstanceIndex
+        });
+      } catch (error) {
+        status.push({
+          instance: this.pipedInstances[i],
+          status: 'offline',
+          responseTime: null,
+          isCurrent: i === this.currentInstanceIndex,
+          error: error.message
+        });
+      }
+    }
+    
+    return status;
   }
 
   getMockVideoDetails(videoId) {
