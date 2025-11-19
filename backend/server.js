@@ -105,7 +105,7 @@ app.use('/api/auth', require('./routes/auth'));          // Authentication route
 app.use('/api/transcripts', require('./routes/transcripts')); // Transcript management
 app.use('/api/vocabulary', require('./routes/vocabulary'));   // Vocabulary management
 app.use('/api/progress', require('./routes/progress'));       // User progress tracking
-app.use('/api/ai', require('./routes/ai'));                   // AI processing routes
+app.use('/api/ai', require('./routes/ai'));                   // NEW: AI processing routes
 app.use('/api/youtube', require('./routes/youtube'));         // YouTube integration
 
 // Health check route - Server status check करने के लिए
