@@ -139,28 +139,6 @@ const userSchema = new mongoose.Schema({
     }
   },
   
-  // Subscription और payment information
-  subscription: {
-    type: {
-      type: String,
-      enum: ['free', 'premium', 'pro'],
-      default: 'free'
-    },
-    status: {
-      type: String,
-      enum: ['active', 'canceled', 'expired', 'past_due'],
-      default: 'active'
-    },
-    currentPeriodStart: Date,
-    currentPeriodEnd: Date,
-    cancelAtPeriodEnd: {
-      type: Boolean,
-      default: false
-    },
-    stripeCustomerId: String,
-    stripeSubscriptionId: String
-  },
-  
   // Account verification और security
   isVerified: {
     type: Boolean,
@@ -213,16 +191,14 @@ userSchema.virtual('accountAge').get(function() {
 });
 
 userSchema.virtual('isPremium').get(function() {
-  return this.subscription.type !== 'free' && 
-         this.subscription.status === 'active' &&
-         new Date() < this.subscription.currentPeriodEnd;
+  // अब सभी users को free access है
+  return true;
 });
 
 // Indexes
 userSchema.index({ email: 1 });
 userSchema.index({ username: 1 });
 userSchema.index({ 'statistics.lastActivity': -1 });
-userSchema.index({ 'subscription.currentPeriodEnd': 1 });
 
 /**
  * Password hash करने का middleware
