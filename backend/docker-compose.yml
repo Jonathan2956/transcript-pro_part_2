@@ -18,9 +18,8 @@ services:
       - NODE_ENV=production
       - MONGODB_URI=mongodb://mongodb:27017/transcript-pro
       - JWT_SECRET=${JWT_SECRET}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
       - GOOGLE_TRANSLATE_API_KEY=${GOOGLE_TRANSLATE_API_KEY}
-      - YOUTUBE_API_KEY=${YOUTUBE_API_KEY}
     volumes:
       - ./logs:/app/logs
       - ./uploads:/app/uploads
@@ -65,22 +64,9 @@ services:
       - app
     restart: unless-stopped
 
-  # Redis Cache (Future use के लिए)
-  redis:
-    image: redis:alpine
-    container_name: transcriptpro-redis
-    ports:
-      - "6379:6379"
-    command: redis-server --appendonly yes
-    volumes:
-      - redis_data:/data
-    restart: unless-stopped
-
 # Persistent Volumes Define करें
 volumes:
   mongodb_data:
-    driver: local
-  redis_data:
     driver: local
 
 # Network Define करें
