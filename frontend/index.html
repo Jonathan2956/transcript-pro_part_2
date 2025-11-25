@@ -31,6 +31,28 @@
     
     <!-- YouTube IFrame API -->
     <script src="https://www.youtube.com/iframe_api"></script>
+
+    <!-- ============================================= -->
+    <!-- ✅ ADDED: Backend URL Configuration Script -->
+    <!-- ============================================= -->
+    <script>
+        // Backend URL Configuration - Simple & Clean
+        // ✅ Production: Render backend URL
+        // ✅ Development: Localhost URL  
+        const isLocalDevelopment = window.location.hostname === 'localhost' || 
+                                 window.location.hostname === '127.0.0.1';
+        
+        window.BACKEND_URL = isLocalDevelopment ? 
+            'http://localhost:5000' : 
+            'https://your-backend-service.onrender.com'; // 🔄 Replace with your actual backend URL
+        
+        window.API_BASE_URL = window.BACKEND_URL + '/api';
+
+        console.log('🚀 TranscriptPro App Configuration Loaded');
+        console.log('🔗 Backend URL:', window.BACKEND_URL);
+        console.log('🌐 API Base URL:', window.API_BASE_URL);
+        console.log('🏠 Environment:', isLocalDevelopment ? 'Development' : 'Production');
+    </script>
 </head>
 <body>
     <!-- Loading Screen - App load होते time show होगा -->
@@ -423,8 +445,8 @@
                         <span class="btn-icon">💾</span>
                         Save Phrase
                     </button>
-                    <button id="translateBtn" class="btn btn-outline btn-small">
-                        <span class="btn-icon">🌐</span>
+                    <button id="translateBtn" class="btn btn-outline btn-small">  
+                                 <span class="btn-icon">🌐</span>
                         Translate
                     </button>
                 </div>
@@ -847,6 +869,7 @@
                             </div>
                         </div>
 
+              
                         <div class="setting-group">
                             <h4>Danger Zone</h4>
                             <div class="danger-actions">
@@ -953,5 +976,4 @@
         }
     </script>
 </body>
-        </html>    
- 
+    </html>               
