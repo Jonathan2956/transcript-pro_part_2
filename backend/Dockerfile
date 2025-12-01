@@ -1,21 +1,13 @@
 # =============================================
-# TranscriptPro Backend Dockerfile
-# Production के लिए optimized Docker image
+# TranscriptPro Backend - Render Optimized
 # =============================================
 
-# Official Node.js runtime use करें
 FROM node:16-alpine
 
-# Security best practices के लिए:
-# 1. Non-root user create करें
-# 2. Latest security updates apply करें
-# 3. Unnecessary packages install ना करें
+# Working directory
+WORKDIR /usr/src/app
 
-# Working directory set करें
-WORKDIR /app
-
-# Install system dependencies
-# yt-dlp और FFmpeg YouTube integration के लिए required हैं
+# System dependencies (yt-dlp और FFmpeg के लिए)
 RUN apk update && apk add --no-cache \
     python3 \
     py3-pip \
@@ -23,39 +15,37 @@ RUN apk update && apk add --no-cache \
     && pip3 install yt-dlp \
     && rm -rf /var/cache/apk/*
 
-# Copy package files
+# Package files copy
 COPY package*.json ./
 
-# Dependencies install करें
+# Production dependencies install
 RUN npm install --production --no-optional
 
-# Source code copy करें
+# Source code copy
 COPY . .
 
-# Non-root user create करें (security के लिए)
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S transcriptpro -u 1001
+# Non-root user for security
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S transcriptpro -u 1001 && \
+    chown -R transcriptpro:nodejs /usr/src/app
 
-# File permissions set करें
-RUN chown -R transcriptpro:nodejs /app
-
-# Temporary directory create करें
-RUN mkdir -p /app/temp /app/logs /app/uploads
-RUN chown -R transcriptpro:nodejs /app/temp /app/logs /app/uploads
+# File permissions
+RUN mkdir -p /usr/src/app/temp /usr/src/app/logs /usr/src/app/uploads && \
+    chown -R transcriptpro:nodejs /usr/src/app/temp /usr/src/app/logs /usr/src/app/uploads
 
 # Switch to non-root user
 USER transcriptpro
 
-# Port expose करें
-EXPOSE 5000
+# Port expose
+EXPOSE 10000
 
-# Health check define करें
+# Health check (Render के लिए optimized)
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD node scripts/health-check.js
+    CMD wget --no-verbose --tries=1 --spider http://localhost:10000/api/health || exit 1
 
-# Environment variables set करें
+# Environment variables
 ENV NODE_ENV=production
-ENV PORT=5000
+ENV PORT=10000
 
-# Application start करें
-CMD ["npm", "start"]
+# Start application
+CMD ["node", "server.js"]
