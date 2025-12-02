@@ -175,8 +175,11 @@ app.use((error, req, res, next) => {
 });
 
 // Server start करें
-const PORT = process.env.PORT || 5000;
-const server = app.listen(PORT, () => {
+// ✅ CHANGED LINE 1: PORT changed from 5000 to 10000
+const PORT = process.env.PORT || 10000;
+
+// ✅ CHANGED LINE 2: Added '0.0.0.0' for Docker
+const server = app.listen(PORT, '0.0.0.0', () => {
   logger.info(`🚀 Server running on port ${PORT}`);
   logger.info(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
   logger.info(`🔗 Health check: http://localhost:${PORT}/api/health`);
