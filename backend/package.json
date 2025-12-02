@@ -13,7 +13,7 @@
     "lint:fix": "eslint . --ext .js --fix",
     "format": "prettier --write .",
     "docker:build": "docker build -t transcript-pro-backend .",
-    "docker:run": "docker run -p 5000:5000 transcript-pro-backend",
+    "docker:run": "docker run -p 10000:10000 transcript-pro-backend",
     "docker:compose": "docker-compose up -d",
     "pm2:start": "pm2 start ecosystem.config.js",
     "pm2:stop": "pm2 stop ecosystem.config.js",
@@ -76,4 +76,4 @@
     "url": "https://github.com/your-username/transcript-pro/issues"
   },
   "homepage": "https://github.com/your-username/transcript-pro#readme"
-}
+  }
