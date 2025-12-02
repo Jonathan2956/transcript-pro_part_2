@@ -1,13 +1,10 @@
 # =============================================
-# TranscriptPro Backend - Render Optimized
+# TranscriptPro Backend - RENDER DOCKER DEPLOYMENT
 # =============================================
 
 FROM node:16-alpine
 
-# Working directory
-WORKDIR /usr/src/app
-
-# System dependencies (yt-dlp और FFmpeg के लिए)
+# Install system dependencies for yt-dlp (YouTube captions के लिए)
 RUN apk update && apk add --no-cache \
     python3 \
     py3-pip \
@@ -15,31 +12,34 @@ RUN apk update && apk add --no-cache \
     && pip3 install yt-dlp \
     && rm -rf /var/cache/apk/*
 
-# Package files copy
+# Create app directory
+WORKDIR /app
+
+# Copy package files
 COPY package*.json ./
 
-# Production dependencies install
-RUN npm install --production --no-optional
+# Install Node.js dependencies
+RUN npm install --production
 
-# Source code copy
+# Copy app source code
 COPY . .
 
-# Non-root user for security
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S transcriptpro -u 1001 && \
-    chown -R transcriptpro:nodejs /usr/src/app
+# Create necessary directories
+RUN mkdir -p logs temp uploads \
+    && chmod -R 777 logs temp uploads
 
-# File permissions
-RUN mkdir -p /usr/src/app/temp /usr/src/app/logs /usr/src/app/uploads && \
-    chown -R transcriptpro:nodejs /usr/src/app/temp /usr/src/app/logs /usr/src/app/uploads
+# Create non-root user for security (Render requirement)
+RUN addgroup -g 1001 -S nodejs \
+    && adduser -S appuser -u 1001 -G nodejs \
+    && chown -R appuser:nodejs /app
 
 # Switch to non-root user
-USER transcriptpro
+USER appuser
 
-# Port expose
+# Expose port 10000 (Render के लिए required)
 EXPOSE 10000
 
-# Health check (Render के लिए optimized)
+# Health check for Render
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:10000/api/health || exit 1
 
@@ -47,5 +47,5 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 ENV NODE_ENV=production
 ENV PORT=10000
 
-# Start application
+# Start the application
 CMD ["node", "server.js"]
