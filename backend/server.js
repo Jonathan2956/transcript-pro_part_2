@@ -190,7 +190,7 @@ const server = app.listen(PORT, '0.0.0.0', () => {
 });
 
 // Graceful shutdown handling - Ctrl+C दबाने पर properly stop करने के लिए
-process.on('SIGINT', async () => {
+', async () => {
   logger.info('🛑 Received SIGINT signal, shutting down gracefully...');
   
   // New connections accept ना करें
@@ -210,7 +210,7 @@ process.on('unhandledRejection', (err) => {
   logger.error('🚨 Unhandled Promise Rejection:', err);
   // Server restart करें (production में)
   if (process.env.NODE_ENV === 'production') {
-    process.exit(1);
+   // process.exit(1);
   }
 });
 
@@ -219,7 +219,7 @@ process.on('uncaughtException', (err) => {
   logger.error('🚨 Uncaught Exception:', err);
   // Server restart करें (production में)
   if (process.env.NODE_ENV === 'production') {
-    process.exit(1);
+   // process.exit(1);
   }
 });
 
