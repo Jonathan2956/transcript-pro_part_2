@@ -13,6 +13,9 @@ const compression = require('compression');
 const morgan = require('morgan');
 const path = require('path');
 require('dotenv').config();
+console.log("🚀 Starting Backend Server...");
+console.log("📌 PORT:", process.env.PORT);
+console.log("📌 MONGODB_URI:", process.env.MONGODB_URI);
 
 // Logger import करें
 const logger = require('./utils/logger');
