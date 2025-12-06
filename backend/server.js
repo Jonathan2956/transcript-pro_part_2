@@ -1,225 +1,229 @@
 /**
  * TranscriptPro - Main Server File
- * यह file server start करती है और सभी routes और middleware configure करती है
+ * Fixed version for Render deployment
  */
 
-// Required modules import करें
+console.log("=== 🚀 TranscriptPro Server Starting ===");
+console.log("Time:", new Date().toISOString());
+
+// Required modules
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
-const compression = require('compression');
-const morgan = require('morgan');
-const path = require('path');
 require('dotenv').config();
-console.log("🚀 Starting Backend Server...");
-console.log("📌 PORT:", process.env.PORT);
-console.log("📌 MONGODB_URI:", process.env.MONGODB_URI);
 
-// Logger import करें
-const logger = require('./utils/logger');
+// Debug: Check environment
+console.log("📌 Environment Check:");
+console.log("PORT:", process.env.PORT || "Not set");
+console.log("NODE_ENV:", process.env.NODE_ENV || "Not set");
+console.log("MONGODB_URI present:", process.env.MONGODB_URI ? "Yes" : "No");
+console.log("FRONTEND_URL:", process.env.FRONTEND_URL || "Not set");
 
-// Express app create करें
 const app = express();
 
-// Security middleware apply करें
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "https://www.youtube.com", "https://apis.google.com"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      imgSrc: ["'self'", "data:", "https://img.youtube.com", "https://i.ytimg.com"],
-      connectSrc: ["'self'", "https://www.googleapis.com", "https://api.openai.com", "https://translation.googleapis.com"]
-    }
-  }
-}));
-
-// Rate limiting setup करें - DDoS attacks से बचाव के लिए
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000, // प्रति IP 1000 requests की limit
-  message: {
-    error: 'Too many requests from this IP, please try again after 15 minutes.'
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-app.use(limiter);
-
-// CORS setup करें - Frontend से requests allow करने के लिए
+// Basic middleware - SIMPLIFIED VERSION
+app.use(helmet());
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  origin: process.env.FRONTEND_URL || '*',
+  credentials: true
 }));
-
-// Body parsing middleware - JSON और URL encoded data parse करने के लिए
-app.use(express.json({ limit: '10mb' })); // Large transcripts के लिए limit बढ़ाई है
+app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Compression middleware - Response size reduce करने के लिए
-app.use(compression());
+// ====== DATABASE CONNECTION (OPTIONAL - WILL NOT CRASH IF FAILS) ======
+let mongoose;
+let dbConnected = false;
 
-// Logging middleware - सभी requests log करने के लिए
-app.use(morgan('combined', { 
-  stream: { write: (message) => logger.info(message.trim()) } 
-}));
+try {
+  mongoose = require('mongoose');
+  
+  const connectDB = async () => {
+    try {
+      if (!process.env.MONGODB_URI) {
+        console.log("⚠️  MONGODB_URI not set, skipping database connection");
+        return;
+      }
+      
+      console.log("🔗 Attempting MongoDB connection...");
+      const conn = await mongoose.connect(process.env.MONGODB_URI, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+        serverSelectionTimeoutMS: 10000,
+        socketTimeoutMS: 45000,
+      });
+      
+      console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
+      dbConnected = true;
+      
+      mongoose.connection.on('error', (err) => {
+        console.error('❌ MongoDB connection error:', err.message);
+      });
+      
+      mongoose.connection.on('disconnected', () => {
+        console.warn('🔌 MongoDB disconnected');
+        dbConnected = false;
+      });
+      
+    } catch (error) {
+      console.error('❌ MongoDB connection failed:', error.message);
+      console.log('⚠️  Server will run without database');
+      dbConnected = false;
+    }
+  };
+  
+  // Connect to DB (but don't crash if fails)
+  connectDB();
+  
+} catch (error) {
+  console.log("⚠️  mongoose not available, running without database");
+}
+// ====== END DATABASE ======
 
-// Static files serve करें - Uploaded files के लिए
-app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
+// ====== ROUTES ======
+console.log("🔄 Loading routes...");
 
-// MongoDB connection setup करें
-const connectDB = async () => {
-  try {
-    const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/transcript-pro', {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 45000,
-    });
-
-    logger.info(`✅ MongoDB Connected: ${conn.connection.host}`);
-    
-    // Connection events handle करें
-    mongoose.connection.on('error', (err) => {
-      logger.error('❌ MongoDB connection error:', err);
-    });
-
-    mongoose.connection.on('disconnected', () => {
-      logger.warn('🔌 MongoDB disconnected');
-    });
-
-  } catch (error) {
-    logger.error('❌ MongoDB connection failed:', error);
-    process.exit(1); // Database connection नहीं हो तो app stop कर दें
-  }
-};
-
-// Database connect करें
-connectDB();
-
-// API Routes import और setup करें
-//app.use('/api/auth', require('./routes/auth'));          // Authentication routes
-//app.use('/api/transcripts', require('./routes/transcripts')); // Transcript management
-//app.use('/api/vocabulary', require('./routes/vocabulary'));   // Vocabulary management
-//app.use('/api/progress', require('./routes/progress'));       // User progress tracking
-app.use('/api/ai', require('./routes/al'));                   // ✅ UNCOMMENTED: AI processing routes
-app.use('/api/youtube', require('./routes/youtube'));         // YouTube integration
-
-// Health check route - Server status check करने के लिए
-app.get('/api/health', (req, res) => {
-  res.status(200).json({
-    status: 'OK',
+// Test route
+app.get('/api/test', (req, res) => {
+  res.json({
+    message: '✅ Server is working!',
     timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    memory: process.memoryUsage(),
-    database: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected',
-    environment: process.env.NODE_ENV || 'development'
+    environment: process.env.NODE_ENV || 'development',
+    database: dbConnected ? 'connected' : 'not connected'
   });
 });
 
-// Root route - API information के लिए
+// Health check route (REQUIRED FOR RENDER)
+app.get('/api/health', (req, res) => {
+  res.status(200).json({
+    status: 'OK',
+    service: 'TranscriptPro Backend',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
+    database: dbConnected ? 'connected' : 'not connected',
+    node: process.version
+  });
+});
+
+// AI Routes
+try {
+  const aiRoutes = require('./routes/al');
+  app.use('/api/ai', aiRoutes);
+  console.log("✅ AI routes loaded");
+} catch (error) {
+  console.error("❌ Failed to load AI routes:", error.message);
+  
+  // Create placeholder route
+  app.use('/api/ai', (req, res) => {
+    res.status(501).json({
+      error: 'AI routes temporarily disabled',
+      message: error.message
+    });
+  });
+}
+
+// YouTube Routes
+try {
+  const youtubeRoutes = require('./routes/youtube');
+  app.use('/api/youtube', youtubeRoutes);
+  console.log("✅ YouTube routes loaded");
+} catch (error) {
+  console.error("❌ Failed to load YouTube routes:", error.message);
+  
+  // Create placeholder route
+  app.use('/api/youtube', (req, res) => {
+    res.status(501).json({
+      error: 'YouTube routes temporarily disabled',
+      message: error.message
+    });
+  });
+}
+
+// Root route
 app.get('/', (req, res) => {
   res.json({
     message: '🚀 TranscriptPro API Server',
     version: '1.0.0',
-    documentation: '/api/docs',
-    health: '/api/health',
+    status: 'operational',
     endpoints: {
-      auth: '/api/auth',
-      transcripts: '/api/transcripts',
-      vocabulary: '/api/vocabulary',
-      progress: '/api/progress',
+      health: '/api/health',
+      test: '/api/test',
       ai: '/api/ai',
       youtube: '/api/youtube'
-    }
+    },
+    documentation: 'https://github.com/yourusername/transcript-pro'
   });
 });
 
-// 404 handler - Invalid routes के लिए
+// 404 handler
 app.use('*', (req, res) => {
   res.status(404).json({
     error: 'Route not found',
     path: req.originalUrl,
     method: req.method,
-    availableEndpoints: [
-      'GET /api/health',
-      'GET /',
-      'POST /api/ai/process',      // ✅ Added AI endpoints
-      'GET /api/youtube/transcript' // ✅ Added YouTube endpoints
-    ]
+    suggestion: 'Check / endpoint for available routes'
   });
 });
 
-// Global error handler - सभी unhandled errors handle करने के लिए
-app.use((error, req, res, next) => {
-  logger.error('🚨 Unhandled Error:', {
-    message: error.message,
-    stack: error.stack,
-    url: req.url,
-    method: req.method,
-    ip: req.ip
-  });
-
-  // Production में detailed error ना दिखाएं
-  const isProduction = process.env.NODE_ENV === 'production';
-  
-  res.status(error.status || 500).json({
-    error: isProduction ? 'Something went wrong!' : error.message,
-    ...(isProduction ? {} : { stack: error.stack }),
-    requestId: req.id
+// Error handler
+app.use((err, req, res, next) => {
+  console.error('🚨 Server error:', err.message);
+  res.status(err.status || 500).json({
+    error: process.env.NODE_ENV === 'production' ? 'Something went wrong' : err.message,
+    status: 'error'
   });
 });
 
-// Server start करें
-// ✅ CHANGED LINE 1: PORT changed from 5000 to 10000
+// ====== START SERVER ======
 const PORT = process.env.PORT || 10000;
 
-// ✅ CHANGED LINE 2: Added '0.0.0.0' for Docker
 const server = app.listen(PORT, '0.0.0.0', () => {
-  logger.info(`🚀 Server running on port ${PORT}`);
-  logger.info(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
-  logger.info(`🔗 Health check: http://localhost:${PORT}/api/health`);
-  logger.info(`📚 API Documentation: http://localhost:${PORT}/api/docs`);
+  console.log(`\n🎉 ===========================================`);
+  console.log(`✅ Server successfully started!`);
+  console.log(`✅ Port: ${PORT}`);
+  console.log(`✅ Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`✅ Database: ${dbConnected ? 'Connected' : 'Not connected'}`);
+  console.log(`✅ Health check: http://localhost:${PORT}/api/health`);
+  console.log(`✅ Test route: http://localhost:${PORT}/api/test`);
+  console.log(`=============================================\n`);
 });
 
-// Graceful shutdown handling - Ctrl+C दबाने पर properly stop करने के लिए
-process.on('SIGINT', async () => {  // ✅ FIXED: Added "process.on('SIGINT',"
-  logger.info('🛑 Received SIGINT signal, shutting down gracefully...');
+// Graceful shutdown
+const shutdown = async () => {
+  console.log('\n🛑 Received shutdown signal...');
   
-  // New connections accept ना करें
   server.close(() => {
-    logger.info('🔒 HTTP server closed');
+    console.log('🔒 HTTP server closed');
+    
+    if (mongoose && mongoose.connection.readyState === 1) {
+      mongoose.connection.close(false, () => {
+        console.log('🔒 MongoDB connection closed');
+        process.exit(0);
+      });
+    } else {
+      process.exit(0);
+    }
   });
+  
+  // Force shutdown after 10 seconds
+  setTimeout(() => {
+    console.log('⏰ Force shutdown after timeout');
+    process.exit(1);
+  }, 10000);
+};
 
-  // Database connection close करें
-  await mongoose.connection.close();
-  logger.info('🔒 Database connection closed');
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
 
-  process.exit(0);
-});
-
-// Unhandled promise rejections handle करें
-process.on('unhandledRejection', (err) => {
-  logger.error('🚨 Unhandled Promise Rejection:', err);
-  // Server restart करें (production में)
-  if (process.env.NODE_ENV === 'production') {
-   process.exit(1);
-  }
-});
-
-// Uncaught exceptions handle करें
+// Handle uncaught errors
 process.on('uncaughtException', (err) => {
-  logger.error('🚨 Uncaught Exception:', err);
-  // Server restart करें (production में)
-  if (process.env.NODE_ENV === 'production') {
-   // process.exit(1);
-  }
+  console.error('💥 UNCAUGHT EXCEPTION:', err.message);
+  console.error(err.stack);
+  // Don't exit - let the server keep running
 });
 
-module.exports = app; // Testing के लिए export करें
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('⚠️ UNHANDLED REJECTION at:', promise, 'reason:', reason);
+});
+
+module.exports = app;
