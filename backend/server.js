@@ -210,7 +210,7 @@ process.on('unhandledRejection', (err) => {
   logger.error('🚨 Unhandled Promise Rejection:', err);
   // Server restart करें (production में)
   if (process.env.NODE_ENV === 'production') {
-   // process.exit(1);
+   process.exit(1);
   }
 });
 
