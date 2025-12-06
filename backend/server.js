@@ -108,7 +108,7 @@ connectDB();
 //app.use('/api/transcripts', require('./routes/transcripts')); // Transcript management
 //app.use('/api/vocabulary', require('./routes/vocabulary'));   // Vocabulary management
 //app.use('/api/progress', require('./routes/progress'));       // User progress tracking
-//app.use('/api/ai', require('./routes/ai'));                   // NEW: AI processing routes
+app.use('/api/ai', require('./routes/al'));                   // ✅ UNCOMMENTED: AI processing routes
 app.use('/api/youtube', require('./routes/youtube'));         // YouTube integration
 
 // Health check route - Server status check करने के लिए
@@ -149,10 +149,9 @@ app.use('*', (req, res) => {
     method: req.method,
     availableEndpoints: [
       'GET /api/health',
-      'POST /api/auth/login',
-      'POST /api/auth/register',
-      'GET /api/transcripts/:videoId',
-      'POST /api/transcripts'
+      'GET /',
+      'POST /api/ai/process',      // ✅ Added AI endpoints
+      'GET /api/youtube/transcript' // ✅ Added YouTube endpoints
     ]
   });
 });
@@ -190,7 +189,7 @@ const server = app.listen(PORT, '0.0.0.0', () => {
 });
 
 // Graceful shutdown handling - Ctrl+C दबाने पर properly stop करने के लिए
-', async () => {
+process.on('SIGINT', async () => {  // ✅ FIXED: Added "process.on('SIGINT',"
   logger.info('🛑 Received SIGINT signal, shutting down gracefully...');
   
   // New connections accept ना करें
