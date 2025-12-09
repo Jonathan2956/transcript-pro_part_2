@@ -85,7 +85,7 @@ router.post('/fix-transcript', [
       data: {
         original: transcriptText,
         fixed: fixedTranscript,
-        improvements: this.calculateImprovements(transcriptText, fixedTranscript),
+        improvements: router.calculateImprovements(transcriptText, fixedTranscript), // ✅ CHANGE 1: this → router
         fixType: fixType
       }
     });
@@ -262,7 +262,7 @@ router.post('/learning-insights', [
     const insights = await transcriptProcessor.generateLearningInsights(sentences);
 
     // Add personalized recommendations based on user level
-    const personalizedInsights = await this.addPersonalizedRecommendations(
+    const personalizedInsights = await router.addPersonalizedRecommendations( // ✅ CHANGE 2: this → router
       insights, 
       req.user
     );
@@ -325,8 +325,8 @@ router.addPersonalizedRecommendations = async function(insights, user) {
   return {
     ...insights,
     personalizedTips: levelBasedTips[userLevel] || levelBasedTips.beginner,
-    recommendedNextSteps: this.generateNextSteps(insights, userLevel),
-    progressTracking: this.calculateProgressMetrics(insights, user)
+    recommendedNextSteps: router.generateNextSteps(insights, userLevel), // ✅ CHANGE 3: this → router
+    progressTracking: router.calculateProgressMetrics(insights, user) // ✅ CHANGE 4: this → router
   };
 };
 
@@ -353,7 +353,7 @@ router.calculateProgressMetrics = function(insights, user) {
   
   return {
     vocabularyGrowth: insights.totalWords / 100, // Simplified metric
-    comprehensionLevel: this.mapDifficultyToScore(insights.mostCommonDifficulty),
+    comprehensionLevel: router.mapDifficultyToScore(insights.mostCommonDifficulty), // ✅ CHANGE 5: this → router
     learningEfficiency: insights.totalPhrases / insights.totalSentences,
     estimatedMasteryTime: insights.estimatedLearningTime * 1.5 // Buffer for mastery
   };
@@ -371,5 +371,22 @@ router.mapDifficultyToScore = function(difficulty) {
   
   return scoreMap[difficulty] || 50;
 };
+
+// Test endpoint
+router.get('/test', (req, res) => {
+  res.json({ 
+    status: 'success', 
+    message: 'AI routes are working',
+    endpoints: [
+      'POST /api/ai/process-transcript',
+      'POST /api/ai/fix-transcript',
+      'POST /api/ai/analyze-phrases',
+      'POST /api/ai/translate',
+      'POST /api/ai/analyze-complexity',
+      'POST /api/ai/learning-insights',
+      'GET /api/ai/test'
+    ]
+  });
+});
 
 module.exports = router;
