@@ -2,13 +2,15 @@
 # TranscriptPro Backend - RENDER DOCKER DEPLOYMENT
 # =============================================
 
-FROM node:16-alpine
+# ✅ CHANGE 1: Node 16 → Node 18 (Render recommendation)
+FROM node:18-alpine
 
 # Install system dependencies for yt-dlp (YouTube captions के लिए)
 RUN apk update && apk add --no-cache \
     python3 \
     py3-pip \
     ffmpeg \
+    curl \  # ✅ CHANGE 2: curl added for health checks
     && pip3 install yt-dlp \
     && rm -rf /var/cache/apk/*
 
@@ -39,9 +41,9 @@ USER appuser
 # Expose port 10000 (Render के लिए required)
 EXPOSE 10000
 
-# Health check for Render
+# ✅ Health check updated to use curl (wget से curl)
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:10000/api/health || exit 1
+    CMD curl -f http://localhost:10000/api/health || exit 1
 
 # Environment variables
 ENV NODE_ENV=production
