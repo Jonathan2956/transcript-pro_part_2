@@ -10,9 +10,9 @@ RUN apk update && apk add --no-cache \
     python3 \
     py3-pip \
     ffmpeg \
-    curl \  # ✅ CHANGE 2: curl added for health checks
-    && pip3 install yt-dlp \
-    && rm -rf /var/cache/apk/*
+    curl && \
+    pip3 install yt-dlp && \
+    rm -rf /var/cache/apk/*
 
 # Create app directory
 WORKDIR /app
