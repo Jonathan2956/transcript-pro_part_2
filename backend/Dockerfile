@@ -2,16 +2,20 @@
 # TranscriptPro Backend - RENDER DOCKER DEPLOYMENT
 # =============================================
 
-# ✅ CHANGE 1: Node 16 → Node 18 (Render recommendation)
+# Recommended Node version for Render
 FROM node:18-alpine
 
-# Install system dependencies for yt-dlp (YouTube captions के लिए)
+# -------------------------------------------------
+# FIX: yt-dlp + ffmpeg + python dependencies (working)
+# -------------------------------------------------
 RUN apk update && apk add --no-cache \
     python3 \
     py3-pip \
     ffmpeg \
-    curl && \
-    pip3 install yt-dlp && \
+    curl \
+    bash \
+    tzdata && \
+    pip3 install --no-cache-dir yt-dlp && \
     rm -rf /var/cache/apk/*
 
 # Create app directory
@@ -30,7 +34,7 @@ COPY . .
 RUN mkdir -p logs temp uploads \
     && chmod -R 777 logs temp uploads
 
-# Create non-root user for security (Render requirement)
+# Create non-root user (Render requirement)
 RUN addgroup -g 1001 -S nodejs \
     && adduser -S appuser -u 1001 -G nodejs \
     && chown -R appuser:nodejs /app
@@ -38,16 +42,15 @@ RUN addgroup -g 1001 -S nodejs \
 # Switch to non-root user
 USER appuser
 
-# Expose port 10000 (Render के लिए required)
+# Expose port
 EXPOSE 10000
 
-# ✅ Health check updated to use curl (wget से curl)
+# Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:10000/api/health || exit 1
 
-# Environment variables
 ENV NODE_ENV=production
 ENV PORT=10000
 
-# Start the application
+# Start backend
 CMD ["node", "server.js"]
