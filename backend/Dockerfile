@@ -4,7 +4,7 @@
 
 FROM node:18-alpine
 
-# FIX: yt-dlp + ffmpeg + python + build deps for Alpine
+# Install system dependencies (NO pip install of yt-dlp)
 RUN apk update && apk add --no-cache \
     python3 \
     py3-pip \
@@ -13,9 +13,8 @@ RUN apk update && apk add --no-cache \
     bash \
     tzdata \
     musl-dev \
-    build-base && \
-    pip3 install --no-cache-dir yt-dlp && \
-    rm -rf /var/cache/apk/*
+    build-base \
+    yt-dlp
 
 WORKDIR /app
 
